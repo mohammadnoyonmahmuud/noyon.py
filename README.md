@@ -203,7 +203,7 @@ python noyon.py -i wlan1 -K
 
 
 
-## ⚡ **SHORTCUT SETUP  (Optional)**
+## ⚡✅✅ **SHORTCUT SETUP  (Optional)**
 
 <br>
 
@@ -292,6 +292,27 @@ cd /data/data/com.termux/files/home/noyon.py
 ```bash
 iw dev
 ```
+
+### 😈 STEP 5 —  NOW RUN
+
+<br>
+
+If your interface is `wlan0`:
+
+```bash
+python noyon.py -i wlan0 -K
+```
+
+<br>
+
+If your interface is `wlan1`:
+
+```bash
+python noyon.py -i wlan1 -K
+```
+
+<br>
+
 
 > Look for `Interface wlan0` or `Interface wlan1` and remember it.
 
