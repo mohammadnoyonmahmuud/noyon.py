@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="https://readme-typing-svg.herokuapp.com?font=Orbitron&size=52&duration=2800&pause=700&color=FF0033&center=true&vCenter=true&width=900&height=100&lines=NOYON.PY;WPS+PIN+ATTACK+TOOL;PIXIE+DUST+EXPLOIT" alt="NOYON.PY" />
+<img src="https://readme-typing-svg.herokuapp.com?font=Orbitron&size=48&duration=2800&pause=700&color=FF0033&center=true&vCenter=true&width=900&height=100&lines=NOYON.PY;WPS+PIN+ATTACK+TOOL;PIXIE+DUST+EXPLOIT" alt="NOYON.PY" />
 
 <br>
 
-### 🔥 **WPS PIN / PIXIE DUST ATTACK TOOL FOR TERMUX** 🔥
+### WPS PIN / PIXIE DUST ATTACK TOOL FOR TERMUX
 
 <br>
 
@@ -19,9 +19,9 @@
 
 <br>
 
-**AUTHOR:** [MOHAMMAD NOYON](https://github.com/mohammadnoyonmahmuud)
+Author: [MOHAMMAD NOYON](https://github.com/mohammadnoyonmahmuud)
 
-**BASED ON:** ONESHOTPIN BY ROFL0R & DRYGDRYG
+Based on: OneShotPin by rofl0r & drygdryg
 
 <br>
 
@@ -31,7 +31,7 @@
 
 <br>
 
-## ⚡ **FEATURES**
+## Features
 
 <br>
 
@@ -39,16 +39,16 @@
 <tr>
 <td width="50%">
 
-- 🎯 **WPS PIN GENERATION** — 24/28/32-bit, D-Link, ASUS, Airocon
-- 🧚 **PIXIE DUST ATTACK** — Fast offline WPS PIN recovery
-- 🔨 **SMART BRUTEFORCE** — Sequential half-sweep algorithm
+- WPS PIN Generation — 24/28/32-bit, D-Link, ASUS, Airocon
+- Pixie Dust Attack — Fast offline WPS PIN recovery
+- Smart Bruteforce — Sequential half-sweep algorithm
 
 </td>
 <td width="50%">
 
-- 📡 **BUILT-IN SCANNER** — Detects WPS-enabled networks
-- 💾 **AUTO SAVE** — Credentials saved to TXT / CSV / JSON
-- 📱 **TERMUX READY** — Full Android support
+- Built-in Scanner — Detects WPS-enabled networks
+- Auto Save — Credentials saved to TXT / CSV / JSON
+- Termux Ready — Full Android support
 
 </td>
 </tr>
@@ -60,19 +60,19 @@
 
 <br>
 
-## 📋 **REQUIREMENTS**
+## Requirements
 
 <br>
 
 | COMPONENT | DESCRIPTION |
 |:----------|:------------|
-| 🖥️ **ANDROID** | Rooted device (Magisk / SuperSU) |
-| 📟 **TERMUX** | [DOWNLOAD FROM F-DROID](https://f-droid.org/repo/com.termux_1022.apk) |
-| 📦 **BUSYBOX** | [DOWNLOAD BUSYBOX APK](https://github.com/mohammadnoyonmahmuud/noyon.py/raw/main/BusyBox%20Free_64.apk) |
+| Android | Rooted device (Magisk / SuperSU) |
+| Termux | [DOWNLOAD FROM F-DROID](https://f-droid.org/repo/com.termux_1022.apk) |
+| BusyBox | [DOWNLOAD BUSYBOX APK](https://github.com/mohammadnoyonmahmuud/noyon.py/raw/main/BusyBox%20Free_64.apk) |
 
 <br>
 
-> ⚠️ **ROOT ACCESS IS REQUIRED. WITHOUT IT, WPS ATTACK WILL NOT WORK.**
+> Root access is required. Without it, WPS attack will not work.
 
 <br>
 
@@ -80,21 +80,21 @@
 
 <br>
 
-## 🚀 **INSTALLATION — FIRST TIME SETUP**
+## Installation — First Time Setup
 
 <br>
 
-### **STEP 1** — STORAGE
+### STEP 1 — STORAGE
 
 ```bash
 termux-setup-storage
 ```
 
-> Tap **ALLOW** when the popup appears.
+> Tap ALLOW when the popup appears.
 
 <br>
 
-### **STEP 2** — UPDATE
+### STEP 2 — UPDATE
 
 ```bash
 pkg update -y && pkg upgrade -y
@@ -102,7 +102,7 @@ pkg update -y && pkg upgrade -y
 
 <br>
 
-### **STEP 3** — TSU
+### STEP 3 — TSU
 
 ```bash
 pkg install tsu -y
@@ -110,7 +110,7 @@ pkg install tsu -y
 
 <br>
 
-### **STEP 4** — GIT & PYTHON
+### STEP 4 — GIT & PYTHON
 
 ```bash
 pkg install git python root-repo -y
@@ -118,7 +118,7 @@ pkg install git python root-repo -y
 
 <br>
 
-### **STEP 5** — PACKAGES
+### STEP 5 — PACKAGES
 
 ```bash
 pkg install wpa-supplicant pixiewps iw openssl -y
@@ -126,7 +126,7 @@ pkg install wpa-supplicant pixiewps iw openssl -y
 
 <br>
 
-### **STEP 6** — PIP INSTALL
+### STEP 6 — PIP INSTALL
 
 ```bash
 pip install pyfiglet wcwidth
@@ -134,7 +134,7 @@ pip install pyfiglet wcwidth
 
 <br>
 
-### **STEP 7** — CLONE
+### STEP 7 — CLONE
 
 ```bash
 cd ~
@@ -143,10 +143,40 @@ git clone https://github.com/mohammadnoyonmahmuud/noyon.py.git
 
 <br>
 
-### **STEP 8** — ENTER FOLDER
+### STEP 8 — ENTER FOLDER
 
 ```bash
 cd ~/noyon.py
+```
+
+<br>
+
+### STEP 9 — GAVE POWER
+
+```bash
+tsu
+```
+
+> Tap GRANT on the Magisk popup.
+
+<br>
+
+### STEP 10 — RUN COMMAND
+
+<br>
+
+If your interface is `wlan0`:
+
+```bash
+python noyon.py -i wlan0 -K
+```
+
+<br>
+
+If your interface is `wlan1`:
+
+```bash
+python noyon.py -i wlan1 -K
 ```
 
 <br>
@@ -155,14 +185,14 @@ cd ~/noyon.py
 
 <br>
 
-### ⚡ **ONE-LINE FULL INSTALL**
+### SIMPLE MANUALLY METHOD
 
 <br>
 
 Install everything with a single command:
 
 ```bash
-termux-setup-storage && pkg update -y && pkg upgrade -y && pkg install tsu git python root-repo wpa-supplicant pixiewps iw openssl -y && pip install pyfiglet wcwidth && cd ~ && git clone https://github.com/mohammadnoyonmahmuud/noyon.py.git && cd ~/noyon.py && echo "✅ INSTALLATION COMPLETE"
+termux-setup-storage && pkg update -y && pkg upgrade -y && pkg install tsu git python root-repo wpa-supplicant pixiewps iw openssl -y && pip install pyfiglet wcwidth && cd ~ && git clone https://github.com/mohammadnoyonmahmuud/noyon.py.git && cd ~/noyon.py && echo "INSTALLATION COMPLETE"
 ```
 
 <br>
@@ -171,31 +201,31 @@ termux-setup-storage && pkg update -y && pkg upgrade -y && pkg install tsu git p
 
 <br>
 
-## ▶️ **RUN COMMAND**
+## Manually Method V2
 
 <br>
 
-> 🔥 **FOLLOW THESE STEPS EVERY TIME YOU WANT TO RUN NOYON.PY**
+> Follow these steps every time you want to run Noyon.py
 
 <br>
 
-### **STEP 1** — OPEN TERMUX
+### STEP 1 — OPEN TERMUX
 
 Just open the Termux app on your device.
 
 <br>
 
-### **STEP 2** — GET ROOT
+### STEP 2 — GET ROOT
 
 ```bash
 tsu
 ```
 
-> Tap **GRANT** on the Magisk popup.
+> Tap GRANT on the Magisk popup.
 
 <br>
 
-### **STEP 3** — GO TO FOLDER
+### STEP 3 — GO TO FOLDER
 
 ```bash
 cd /data/data/com.termux/files/home/noyon.py
@@ -203,7 +233,7 @@ cd /data/data/com.termux/files/home/noyon.py
 
 <br>
 
-### **STEP 4** — CHECK INTERFACE
+### STEP 4 — CHECK INTERFACE
 
 ```bash
 iw dev
@@ -217,11 +247,11 @@ iw dev
 
 <br>
 
-### 🎯 **FINAL ENTER**
+## Manually Method V3
 
 <br>
 
-### **STEP 1** — ENTER ROOT
+### STEP 1 — ENTER ROOT
 
 ```bash
 tsu
@@ -229,7 +259,7 @@ tsu
 
 <br>
 
-### **STEP 2** — ENTER FOLDER
+### STEP 2 — ENTER FOLDER
 
 ```bash
 cd /data/data/com.termux/files/home/noyon.py
@@ -237,11 +267,11 @@ cd /data/data/com.termux/files/home/noyon.py
 
 <br>
 
-### **STEP 3** — ATTACK
+### STEP 3 — ATTACK
 
 <br>
 
-**IF YOUR INTERFACE IS `wlan0`:**
+If your interface is `wlan0`:
 
 ```bash
 python noyon.py -i wlan0 -K
@@ -249,7 +279,7 @@ python noyon.py -i wlan0 -K
 
 <br>
 
-**IF YOUR INTERFACE IS `wlan1`:**
+If your interface is `wlan1`:
 
 ```bash
 python noyon.py -i wlan1 -K
@@ -257,7 +287,7 @@ python noyon.py -i wlan1 -K
 
 <br>
 
-**ATTACK A SPECIFIC TARGET BY BSSID:**
+Attack a specific target by BSSID:
 
 ```bash
 python noyon.py -i wlan0 -b AA:BB:CC:DD:EE:FF -K
@@ -269,7 +299,7 @@ python noyon.py -i wlan0 -b AA:BB:CC:DD:EE:FF -K
 
 <br>
 
-### 🎯 **QUICK RUN — 3 COMMANDS**
+### QUICK RUN — 3 COMMANDS
 
 <br>
 
@@ -295,11 +325,11 @@ python noyon.py -i wlan0 -K
 
 <br>
 
-### 🎯 **ALL-IN-ONE COMMAND**
+### ALL-IN-ONE COMMAND
 
 <br>
 
-Run everything with **one command**:
+Run everything with one command:
 
 ```bash
 tsu -c "cd /data/data/com.termux/files/home/noyon.py && python noyon.py -i wlan0 -K"
@@ -307,7 +337,7 @@ tsu -c "cd /data/data/com.termux/files/home/noyon.py && python noyon.py -i wlan0
 
 <br>
 
-**FOR `wlan1`:**
+For `wlan1`:
 
 ```bash
 tsu -c "cd /data/data/com.termux/files/home/noyon.py && python noyon.py -i wlan1 -K"
@@ -319,7 +349,7 @@ tsu -c "cd /data/data/com.termux/files/home/noyon.py && python noyon.py -i wlan1
 
 <br>
 
-## ⚡ **SHORTCUT SETUP** (OPTIONAL)
+## Shortcut Setup (Optional)
 
 <br>
 
@@ -327,7 +357,7 @@ Tired of typing long commands? Create a custom alias.
 
 <br>
 
-**RUN THIS ONCE IN TERMUX:**
+Run this once in Termux:
 
 ```bash
 echo "alias noyon='cd ~/noyon.py && sudo python noyon.py'" >> ~/.bashrc
@@ -336,11 +366,11 @@ source ~/.bashrc
 
 <br>
 
-**NOW JUST TYPE:**
+Now just type:
 
 <br>
 
-**FOR `wlan0`:**
+For `wlan0`:
 
 ```bash
 noyon -i wlan0 -K
@@ -348,7 +378,7 @@ noyon -i wlan0 -K
 
 <br>
 
-**FOR `wlan1`:**
+For `wlan1`:
 
 ```bash
 noyon -i wlan1 -K
@@ -360,7 +390,7 @@ noyon -i wlan1 -K
 
 <br>
 
-## 📖 **USAGE OPTIONS**
+## Usage Options
 
 <br>
 
@@ -384,12 +414,12 @@ noyon -i wlan1 -K
 
 <br>
 
-## 🛠️ **TROUBLESHOOTING**
+## Troubleshooting
 
 <br>
 
-| ❌ PROBLEM | ✅ SOLUTION |
-|:-----------|:------------|
+| PROBLEM | SOLUTION |
+|:--------|:---------|
 | `wpa_supplicant: not found` | `pkg install -y wpa-supplicant` |
 | `Unable to up interface` | Run `iw dev` and use correct name |
 | `No WPS networks found` | Enable WiFi and move closer to router |
@@ -404,15 +434,15 @@ noyon -i wlan1 -K
 
 <br>
 
-## ⚠️ **DISCLAIMER**
+## Disclaimer
 
 <br>
 
-> **THIS TOOL IS FOR EDUCATIONAL PURPOSES AND AUTHORIZED SECURITY TESTING ONLY.**
+> This tool is for educational purposes and authorized security testing only.
 >
-> Unauthorized access to networks is **ILLEGAL**. Use only on your own networks or with explicit written permission from the owner.
+> Unauthorized access to networks is illegal. Use only on your own networks or with explicit written permission from the owner.
 >
-> The author (**MOHAMMAD NOYON**) is not responsible for any misuse or damage.
+> The author (MOHAMMAD NOYON) is not responsible for any misuse or damage.
 
 <br>
 
@@ -420,13 +450,13 @@ noyon -i wlan1 -K
 
 <br>
 
-## 🙏 **ACKNOWLEDGEMENTS**
+## Acknowledgements
 
 <br>
 
-- [ROFL0R](https://github.com/rofl0r) — Original OneShot
-- [DRYGDRYG](https://github.com/drygdryg) — OneShotPin Mod
-- [TERMUX](https://termux.com) — Android Terminal Emulator
+- [rofl0r](https://github.com/rofl0r) — Original OneShot
+- [drygdryg](https://github.com/drygdryg) — OneShotPin Mod
+- [Termux](https://termux.com) — Android Terminal Emulator
 
 <br>
 
@@ -434,11 +464,11 @@ noyon -i wlan1 -K
 
 <br>
 
-## 📜 **LICENSE**
+## License
 
 <br>
 
-This project is licensed under the **MIT LICENSE** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 <br>
 
@@ -452,11 +482,11 @@ This project is licensed under the **MIT LICENSE** — see the [LICENSE](LICENSE
 
 <br>
 
-### ⭐ **STAR THIS REPO IF YOU FOUND IT USEFUL!** ⭐
+### STAR THIS REPO IF YOU FOUND IT USEFUL
 
 <br>
 
-**MADE WITH ❤️ BY [MOHAMMAD NOYON](https://github.com/mohammadnoyonmahmuud)**
+MADE WITH LOVE BY [MOHAMMAD NOYON](https://github.com/mohammadnoyonmahmuud)
 
 <br>
 
