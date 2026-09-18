@@ -80,7 +80,7 @@ Based on: OneShotPin by rofl0r & drygdryg
 
 <br>
 
-### ⚡ SIMPLE METHOD Installation
+### ✅ SIMPLE METHOD Installation
 
 <br>
 
@@ -203,7 +203,7 @@ python noyon.py -i wlan1 -K
 
 
 
-## ⚡✅✅ **SHORTCUT SETUP  (Optional)**
+## ✅ **SHORTCUT SETUP  (Optional)**
 
 <br>
 
@@ -374,7 +374,7 @@ python noyon.py -i wlan0 -b AA:BB:CC:DD:EE:FF -K
 
 <br>
 
-### ⚡ QUICK RUN — 3 COMMANDS
+### ✅ QUICK RUN — 3 COMMANDS
 
 <br>
 
@@ -400,7 +400,7 @@ python noyon.py -i wlan0 -K
 
 <br>
 
-### ⚡ ALL-IN-ONE COMMAND
+### ✅ ALL-IN-ONE COMMAND
 
 <br>
 
