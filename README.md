@@ -210,7 +210,7 @@ python noyon.py -i wlan1 -K
 আপনি এই সেটাপ করলে পরবর্তীতে TERMUX এ যখন ঢুকবেন । কোন এক্সট্রা কামান্ড দেওয়া লাগবে না শুধু এইটা এন্টার করে দিবেন। run হয়ে যাবে।
 <br>
 
------------------------------------------
+------------------------------------------------------------------------------
 <br>
 
 Once you complete the setup, the next time you open Termux, you won't need to enter any commands. Just press Enter, and it will run automatically.
