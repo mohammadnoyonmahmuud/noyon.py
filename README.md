@@ -1,55 +1,70 @@
 <div align="center">
 
-# 🔐 noyon.py
+<img src="https://readme-typing-svg.herokuapp.com?font=JetBrains+Mono&size=40&duration=3000&pause=800&color=00FFAA&center=true&vCenter=true&width=800&lines=Noyon.py;WPS+PIN+%2F+Pixie+Dust+Attack+Tool" alt="Noyon.py" />
 
-### WPS PIN / Pixie Dust Attack Tool for Termux
+### 🔐 **WPS PIN / Pixie Dust Attack Tool for Termux**
 
-[![Python](https://img.shields.io/badge/Python-3.6%2B-blue?style=flat-square&logo=python)](https://python.org)
-[![Termux](https://img.shields.io/badge/Platform-Termux-black?style=flat-square&logo=android)](https://termux.com)
-[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
-[![Author](https://img.shields.io/badge/Author-Noyon-red?style=flat-square)](https://github.com/mohammadnoyonmahmuud)
+[![Python](https://img.shields.io/badge/Python-3.6%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Termux](https://img.shields.io/badge/Platform-Termux-000000?style=for-the-badge&logo=android&logoColor=00FFAA)](https://termux.com)
+[![License](https://img.shields.io/badge/License-MIT-00FFAA?style=for-the-badge)](LICENSE)
+[![Author](https://img.shields.io/badge/Author-Noyon-FF0055?style=for-the-badge&logo=github&logoColor=white)](https://github.com/mohammadnoyonmahmuud)
 
-**Author:** [Noyon](https://github.com/mohammadnoyonmahmuud)  
-**Based on:** OneShotPin by rofl0r & drygdryg
+<img src="https://capsule-render.vercel.app/api?type=rect&color=gradient&customColorList=2,12,24&height=3&section=header" width="100%"/>
+
+**Author:** [Noyon](https://github.com/mohammadnoyonmahmuud) · **Based on:** OneShotPin by rofl0r & drygdryg
 
 </div>
 
 ---
 
-## ⚡ Features
+## ⚡ **FEATURES**
+
+<table>
+<tr>
+<td width="50%">
 
 - 🎯 **WPS PIN Generation** — 24/28/32-bit, D-Link, ASUS, Airocon
 - 🧚 **Pixie Dust Attack** — Fast offline WPS PIN recovery
 - 🔨 **Smart Bruteforce** — Sequential half-sweep algorithm
+
+</td>
+<td width="50%">
+
 - 📡 **Built-in Scanner** — Detects WPS-enabled networks
 - 💾 **Auto Save** — Credentials saved to TXT / CSV / JSON
 - 📱 **Termux Ready** — Full Android support
 
----
-
-## 📋 Requirements
-
-- **Android** with **Root** access (Magisk / SuperSU)
-- **Termux** app → [Download from F-Droid](https://f-droid.org/repo/com.termux_1022.apk)
-- **BusyBox** → [Download BusyBox Free_64.apk](https://github.com/mohammadnoyonmahmuud/noyon.py/raw/main/BusyBox%20Free_64.apk)
-
-> ⚠️ **Root access ছাড়া WPS attack কাজ করবে না।**
+</td>
+</tr>
+</table>
 
 ---
 
-## 🚀 Installation (First Time Setup)
+## 📋 **REQUIREMENTS**
 
-### 📌 STEP 1 — Storage Permission
+| Component | Description |
+|:----------|:------------|
+| 🖥️ **Android** | Rooted device (Magisk / SuperSU) |
+| 📟 **Termux** | [Download from F-Droid](https://f-droid.org/repo/com.termux_1022.apk) |
+| 📦 **BusyBox** | [Download BusyBox Free_64.apk](https://github.com/mohammadnoyonmahmuud/noyon.py/raw/main/BusyBox%20Free_64.apk) |
+
+> ⚠️ **Root access is REQUIRED. Without it, WPS attack will NOT work.**
+
+---
+
+## 🚀 **INSTALLATION** — First Time Setup
+
+### **STEP 1** — Storage Permission
 
 ```bash
 termux-setup-storage
 ```
 
-> 📱 Popup আসলে **Allow** ট্যাপ করুন।
+> Tap **ALLOW** when the popup appears.
 
 ---
 
-### 📌 STEP 2 — Update & Upgrade
+### **STEP 2** — Update & Upgrade
 
 ```bash
 pkg update -y && pkg upgrade -y
@@ -57,7 +72,7 @@ pkg update -y && pkg upgrade -y
 
 ---
 
-### 📌 STEP 3 — Install tsu (Root access)
+### **STEP 3** — Install TSU (Root Access)
 
 ```bash
 pkg install tsu -y
@@ -65,7 +80,7 @@ pkg install tsu -y
 
 ---
 
-### 📌 STEP 4 — Install Git, Python & Root-repo
+### **STEP 4** — Install Git, Python & Root-Repo
 
 ```bash
 pkg install git python root-repo -y
@@ -73,7 +88,7 @@ pkg install git python root-repo -y
 
 ---
 
-### 📌 STEP 5 — Install Required Packages
+### **STEP 5** — Install Required Packages
 
 ```bash
 pkg install wpa-supplicant pixiewps iw openssl -y
@@ -81,7 +96,7 @@ pkg install wpa-supplicant pixiewps iw openssl -y
 
 ---
 
-### 📌 STEP 6 — Install Python Packages
+### **STEP 6** — Install Python Packages
 
 ```bash
 pip install pyfiglet wcwidth
@@ -89,7 +104,7 @@ pip install pyfiglet wcwidth
 
 ---
 
-### 📌 STEP 7 — Clone Repository
+### **STEP 7** — Clone Repository
 
 ```bash
 cd ~
@@ -98,7 +113,7 @@ git clone https://github.com/mohammadnoyonmahmuud/noyon.py.git
 
 ---
 
-### 📌 STEP 8 — Enter Folder
+### **STEP 8** — Enter Folder
 
 ```bash
 cd ~/noyon.py
@@ -106,57 +121,73 @@ cd ~/noyon.py
 
 ---
 
-### ⚡ One-Line Full Install (Copy-Paste)
+### ⚡ **ONE-LINE FULL INSTALL**
 
-সব একসাথে করতে চাইলে নিচের কমান্ডটি ব্যবহার করুন:
+Install everything with a single command:
 
 ```bash
-termux-setup-storage && pkg update -y && pkg upgrade -y && pkg install tsu git python root-repo wpa-supplicant pixiewps iw openssl -y && pip install pyfiglet wcwidth && cd ~ && git clone https://github.com/mohammadnoyonmahmuud/noyon.py.git && cd ~/noyon.py && echo "✅ Installation Complete!"
+termux-setup-storage && pkg update -y && pkg upgrade -y && pkg install tsu git python root-repo wpa-supplicant pixiewps iw openssl -y && pip install pyfiglet wcwidth && cd ~ && git clone https://github.com/mohammadnoyonmahmuud/noyon.py.git && cd ~/noyon.py && echo "✅ INSTALLATION COMPLETE"
 ```
 
 ---
 
-## ▶️ How to Run (প্রতিবার চালানোর নিয়ম)
+<img src="https://capsule-render.vercel.app/api?type=rect&color=gradient&customColorList=2,12,24&height=3&section=header" width="100%"/>
 
-### 🔹 Step 1 — Termux ওপেন করুন
+## ▶️ **RUN COMMAND**
 
-### 🔹 Step 2 — Root নিন
+> 🟢 **Follow these steps EVERY TIME you want to run Noyon.py**
+
+<br>
+
+### **STEP 1** — Open Termux
+
+Just open the Termux app on your device.
+
+---
+
+### **STEP 2** — Get Root Access
 
 ```bash
 tsu
 ```
 
-> 📱 Magisk popup আসলে → **Grant** ট্যাপ করুন।
+> Tap **GRANT** on the Magisk popup.
 
-### 🔹 Step 3 — ফোল্ডারে যান
+---
+
+### **STEP 3** — Navigate to Folder
 
 ```bash
 cd /data/data/com.termux/files/home/noyon.py
 ```
 
-### 🔹 Step 4 — Interface নাম চেক করুন
+---
+
+### **STEP 4** — Check WiFi Interface
 
 ```bash
 iw dev
 ```
 
-> `Interface wlan0` অথবা `Interface wlan1` — যেটা দেখবেন, সেটা মনে রাখুন।
+> Look for `Interface wlan0` or `Interface wlan1` and remember it.
 
-### 🔹 Step 5 — Attack চালান
+---
 
-**যদি interface `wlan0` হয়:**
+### **STEP 5** — Start the Attack
+
+**If your interface is `wlan0`:**
 
 ```bash
 python noyon.py -i wlan0 -K
 ```
 
-**যদি interface `wlan1` হয়:**
+**If your interface is `wlan1`:**
 
 ```bash
 python noyon.py -i wlan1 -K
 ```
 
-**নির্দিষ্ট BSSID দিয়ে:**
+**Attack a specific target by BSSID:**
 
 ```bash
 python noyon.py -i wlan0 -b AA:BB:CC:DD:EE:FF -K
@@ -164,18 +195,36 @@ python noyon.py -i wlan0 -b AA:BB:CC:DD:EE:FF -K
 
 ---
 
-## ⚡ Shortcut Setup (Optional)
+### 🎯 **QUICK RUN — 3 COMMANDS**
 
-প্রতিবার লম্বা কমান্ড টাইপ করতে না চাইলে একটা alias বানিয়ে নিন:
+```bash
+tsu
+```
 
-**Termux এ (root ছাড়া):**
+```bash
+cd /data/data/com.termux/files/home/noyon.py
+```
+
+```bash
+python noyon.py -i wlan0 -K
+```
+
+<img src="https://capsule-render.vercel.app/api?type=rect&color=gradient&customColorList=2,12,24&height=3&section=header" width="100%"/>
+
+---
+
+## ⚡ **SHORTCUT SETUP** (Optional)
+
+Tired of typing long commands? Create a custom alias.
+
+**Run this once in Termux:**
 
 ```bash
 echo "alias noyon='cd ~/noyon.py && sudo python noyon.py'" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-এখন শুধু লিখবেন:
+**Now just type:**
 
 ```bash
 noyon -i wlan0 -K
@@ -183,66 +232,68 @@ noyon -i wlan0 -K
 
 ---
 
-## 📖 Usage Options
+## 📖 **USAGE OPTIONS**
 
 | Flag | Description |
 |:-----|:------------|
-| `-i` | Interface name (e.g. wlan0) |
+| `-i` | Interface name (e.g. `wlan0`) |
 | `-b` | Target BSSID (MAC address) |
 | `-p` | Specific WPS PIN |
-| `-K` | Pixie Dust attack |
-| `-B` | Online bruteforce |
-| `-F` | Pixie Dust with --force |
-| `-X` | Show Pixiewps command |
-| `-w` | Save credentials to file |
-| `--pbc` | Push button connection |
-| `--iface-down` | Down interface when done |
-| `-v` | Verbose output |
+| `-K` | Pixie Dust Attack |
+| `-B` | Online Bruteforce |
+| `-F` | Pixie Dust with `--force` |
+| `-X` | Show Pixiewps Command |
+| `-w` | Save Credentials to File |
+| `--pbc` | Push Button Connection |
+| `--iface-down` | Down Interface When Done |
+| `-v` | Verbose Output |
 
 ---
 
-## 🛠️ Troubleshooting
+## 🛠️ **TROUBLESHOOTING**
 
-| Problem | Solution |
-|:--------|:---------|
+| ❌ Problem | ✅ Solution |
+|:-----------|:------------|
 | `wpa_supplicant: not found` | `pkg install -y wpa-supplicant` |
-| `Unable to up interface` | `iw dev` দিয়ে সঠিক নাম বের করুন |
-| `No WPS networks found` | WiFi চালু করুন, রাউটারের কাছে যান |
+| `Unable to up interface` | Run `iw dev` and use correct name |
+| `No WPS networks found` | Enable WiFi and move closer to router |
 | `RF-kill error` | `sudo rfkill unblock wifi` |
-| `Device or resource busy (-16)` | WiFi বন্ধ করুন, `--iface-down` যোগ করুন |
+| `Device or resource busy (-16)` | Turn off WiFi, add `--iface-down` |
 | `pyfiglet missing` | `pip install pyfiglet` |
-| Root popup আসছে না | Magisk → Superuser → Termux → Enable |
+| Root popup not showing | Magisk → Superuser → Termux → Enable |
 
 ---
 
-## ⚠️ Disclaimer
+## ⚠️ **DISCLAIMER**
 
-> **This tool is for educational purposes and authorized security testing only.**
+> **THIS TOOL IS FOR EDUCATIONAL PURPOSES AND AUTHORIZED SECURITY TESTING ONLY.**
 >
-> Unauthorized access to networks is **illegal**. Use only on your own networks or with explicit written permission from the owner.
+> Unauthorized access to networks is **ILLEGAL**. Use only on your own networks or with explicit written permission from the owner.
 >
 > The author (**Noyon**) is not responsible for any misuse or damage.
 
 ---
 
-## 🙏 Acknowledgements
+## 🙏 **ACKNOWLEDGEMENTS**
 
 - [rofl0r](https://github.com/rofl0r) — Original OneShot
-- [drygdryg](https://github.com/drygdryg) — OneShotPin mod
+- [drygdryg](https://github.com/drygdryg) — OneShotPin Mod
 - [Termux](https://termux.com) — Android Terminal Emulator
 
 ---
 
-## 📜 License
+## 📜 **LICENSE**
 
-This project is licensed under the **MIT License** — see [LICENSE](LICENSE) file.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
 
 <div align="center">
 
-**Made with ❤️ by [Noyon](https://github.com/mohammadnoyonmahmuud)**
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=2,12,24&height=120&section=footer" width="100%"/>
 
-⭐ Star this repo if you found it useful!
+### ⭐ **Star this repo if you found it useful!**
+
+**Made with ❤️ by [Noyon](https://github.com/mohammadnoyonmahmuud)**
 
 </div>
