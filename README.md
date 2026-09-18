@@ -126,7 +126,7 @@ pkg install wpa-supplicant pixiewps iw openssl -y
 
 <br>
 
-### 📌 STEP 6 — PIP INSTALL
+### 😈 STEP 6 — PIP INSTALL
 
 ```bash
 pip install pyfiglet wcwidth
@@ -134,7 +134,7 @@ pip install pyfiglet wcwidth
 
 <br>
 
-### 📌 STEP 7 — CLONE
+### 😈 STEP 7 — CLONE
 
 ```bash
 cd ~
@@ -143,7 +143,7 @@ git clone https://github.com/mohammadnoyonmahmuud/noyon.py.git
 
 <br>
 
-### 📌 STEP 8 — ENTER FOLDER
+### 😈 STEP 8 — ENTER FOLDER
 
 ```bash
 cd ~/noyon.py
@@ -151,7 +151,7 @@ cd ~/noyon.py
 
 <br>
 
-### 📌 STEP 9 — GAVE POWER
+### 😈 STEP 9 — GAVE POWER
 
 ```bash
 tsu
@@ -161,7 +161,7 @@ tsu
 
 <br>
 
-### 📌 STEP 10 — RUN COMMAND
+### 😈 STEP 10 — RUN COMMAND
 
 <br>
 
@@ -209,13 +209,13 @@ termux-setup-storage && pkg update -y && pkg upgrade -y && pkg install tsu git p
 
 <br>
 
-### 📌 STEP 1 — OPEN TERMUX
+### 😈 STEP 1 — OPEN TERMUX
 
 Just open the Termux app on your device.
 
 <br>
 
-### 📌 STEP 2 — GET ROOT
+### 😈 STEP 2 — GET ROOT
 
 ```bash
 tsu
@@ -225,7 +225,7 @@ tsu
 
 <br>
 
-### 📌 STEP 3 — GO TO FOLDER
+### 😈 STEP 3 — GO TO FOLDER
 
 ```bash
 cd /data/data/com.termux/files/home/noyon.py
@@ -233,7 +233,7 @@ cd /data/data/com.termux/files/home/noyon.py
 
 <br>
 
-### 📌 STEP 4 — CHECK INTERFACE
+### 😈 STEP 4 — CHECK INTERFACE
 
 ```bash
 iw dev
@@ -251,7 +251,7 @@ iw dev
 
 <br>
 
-### 📌 STEP 1 — ENTER ROOT
+### 😈 STEP 1 — ENTER ROOT
 
 ```bash
 tsu
@@ -259,7 +259,7 @@ tsu
 
 <br>
 
-### 📌 STEP 2 — ENTER FOLDER
+### 😈 STEP 2 — ENTER FOLDER
 
 ```bash
 cd /data/data/com.termux/files/home/noyon.py
@@ -267,7 +267,7 @@ cd /data/data/com.termux/files/home/noyon.py
 
 <br>
 
-### 📌 STEP 3 — ATTACK
+### 😈 STEP 3 — ATTACK
 
 <br>
 
@@ -349,7 +349,7 @@ tsu -c "cd /data/data/com.termux/files/home/noyon.py && python noyon.py -i wlan1
 
 <br>
 
-## ⚡ Shortcut Setup (Optional)
+## ⚡ **Shortcut Setup (Optional)**
 
 <br>
 
