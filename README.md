@@ -84,7 +84,7 @@ Based on: OneShotPin by rofl0r & drygdryg
 
 <br>
 
-### 📌 STEP 1 — STORAGE
+### 😈 STEP 1 — STORAGE
 
 ```bash
 termux-setup-storage
@@ -94,7 +94,7 @@ termux-setup-storage
 
 <br>
 
-### 📌 STEP 2 — UPDATE
+### 😈 STEP 2 — UPDATE
 
 ```bash
 pkg update -y && pkg upgrade -y
@@ -102,7 +102,7 @@ pkg update -y && pkg upgrade -y
 
 <br>
 
-### 📌 STEP 3 — TSU
+### 😈 STEP 3 — TSU
 
 ```bash
 pkg install tsu -y
@@ -110,7 +110,7 @@ pkg install tsu -y
 
 <br>
 
-### 📌 STEP 4 — GIT & PYTHON
+### 😈 STEP 4 — GIT & PYTHON
 
 ```bash
 pkg install git python root-repo -y
@@ -118,7 +118,7 @@ pkg install git python root-repo -y
 
 <br>
 
-### 📌 STEP 5 — PACKAGES
+### 😈 STEP 5 — PACKAGES
 
 ```bash
 pkg install wpa-supplicant pixiewps iw openssl -y
