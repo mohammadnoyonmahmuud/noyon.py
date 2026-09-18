@@ -19,7 +19,7 @@
 
 # Setup
 
-## [Termux](https://termux.com/)
+## [Termux](https://f-droid.org/repo/com.termux_1022.apk)
 **Root access is required.**
 
 #### Download BusyBox
