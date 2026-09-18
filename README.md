@@ -1,4 +1,4 @@
-# Noyon.py — WPS PIN / Pixie Dust Attack Tool
+# noyon.py — WPS PIN / Pixie Dust Attack Tool
 
 > Termux & Linux এর জন্য WPS attack tool
 > **Author:** [Noyon](https://github.com/mohammadnoyonmahmuud)
