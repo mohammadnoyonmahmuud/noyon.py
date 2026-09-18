@@ -23,6 +23,6 @@
 **Root access is required.**
 
 #### Download BusyBox
-https://github.com/mohammadnoyonmahmuud/Noyon-WPS/raw/main/BusyBox.apk
+https://github.com/mohammadnoyonmahmuud/noyon.py/blob/main/BusyBox%20Free_64.apk
 
 #### Using installer
