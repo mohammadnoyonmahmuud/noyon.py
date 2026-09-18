@@ -84,7 +84,7 @@
 
 <br>
 
-### **STEP 1** — STORAGE PERMISSION
+### **STEP 1** — STORAGE
 
 ```bash
 termux-setup-storage
@@ -94,7 +94,7 @@ termux-setup-storage
 
 <br>
 
-### **STEP 2** — UPDATE & UPGRADE
+### **STEP 2** — UPDATE
 
 ```bash
 pkg update -y && pkg upgrade -y
@@ -102,7 +102,7 @@ pkg update -y && pkg upgrade -y
 
 <br>
 
-### **STEP 3** — INSTALL TSU (ROOT ACCESS)
+### **STEP 3** — TSU
 
 ```bash
 pkg install tsu -y
@@ -110,7 +110,7 @@ pkg install tsu -y
 
 <br>
 
-### **STEP 4** — INSTALL GIT, PYTHON & ROOT-REPO
+### **STEP 4** — GIT & PYTHON
 
 ```bash
 pkg install git python root-repo -y
@@ -118,7 +118,7 @@ pkg install git python root-repo -y
 
 <br>
 
-### **STEP 5** — INSTALL REQUIRED PACKAGES
+### **STEP 5** — PACKAGES
 
 ```bash
 pkg install wpa-supplicant pixiewps iw openssl -y
@@ -126,7 +126,7 @@ pkg install wpa-supplicant pixiewps iw openssl -y
 
 <br>
 
-### **STEP 6** — INSTALL PYTHON PACKAGES
+### **STEP 6** — PIP INSTALL
 
 ```bash
 pip install pyfiglet wcwidth
@@ -134,7 +134,7 @@ pip install pyfiglet wcwidth
 
 <br>
 
-### **STEP 7** — CLONE REPOSITORY
+### **STEP 7** — CLONE
 
 ```bash
 cd ~
@@ -147,37 +147,6 @@ git clone https://github.com/mohammadnoyonmahmuud/noyon.py.git
 
 ```bash
 cd ~/noyon.py
-```
-
-<br>
-
-
-
-### **STEP 9 ** — FOR POWER 
-
-```bash
-tsu
-```
-
-<br>
-
-
-### **🎯 FINAL STEP — EXECUTE**
-
-<br>
-
-**IF YOUR INTERFACE IS `wlan0`:**
-
-```bash
-python noyon.py -i wlan0 -K
-```
-
-<br>
-
-**IF YOUR INTERFACE IS `wlan1`:**
-
-```bash
-python noyon.py -i wlan1 -K
 ```
 
 <br>
@@ -216,7 +185,7 @@ Just open the Termux app on your device.
 
 <br>
 
-### **STEP 2** — GET ROOT ACCESS
+### **STEP 2** — GET ROOT
 
 ```bash
 tsu
@@ -226,7 +195,7 @@ tsu
 
 <br>
 
-### **STEP 3** — NAVIGATE TO FOLDER
+### **STEP 3** — GO TO FOLDER
 
 ```bash
 cd /data/data/com.termux/files/home/noyon.py
@@ -234,7 +203,7 @@ cd /data/data/com.termux/files/home/noyon.py
 
 <br>
 
-### **STEP 4** — CHECK WIFI INTERFACE
+### **STEP 4** — CHECK INTERFACE
 
 ```bash
 iw dev
@@ -244,7 +213,31 @@ iw dev
 
 <br>
 
-### **STEP 5** — START THE ATTACK**
+---
+
+<br>
+
+### 🎯 **FINAL ENTER**
+
+<br>
+
+### **STEP 1** — ENTER ROOT
+
+```bash
+tsu
+```
+
+<br>
+
+### **STEP 2** — ENTER FOLDER
+
+```bash
+cd /data/data/com.termux/files/home/noyon.py
+```
+
+<br>
+
+### **STEP 3** — ATTACK
 
 <br>
 
@@ -294,6 +287,30 @@ cd /data/data/com.termux/files/home/noyon.py
 
 ```bash
 python noyon.py -i wlan0 -K
+```
+
+<br>
+
+---
+
+<br>
+
+### 🎯 **ALL-IN-ONE COMMAND**
+
+<br>
+
+Run everything with **one command**:
+
+```bash
+tsu -c "cd /data/data/com.termux/files/home/noyon.py && python noyon.py -i wlan0 -K"
+```
+
+<br>
+
+**FOR `wlan1`:**
+
+```bash
+tsu -c "cd /data/data/com.termux/files/home/noyon.py && python noyon.py -i wlan1 -K"
 ```
 
 <br>
@@ -403,7 +420,7 @@ noyon -i wlan1 -K
 
 <br>
 
-##  **ACKNOWLEDGEMENTS**
+## 🙏 **ACKNOWLEDGEMENTS**
 
 <br>
 
