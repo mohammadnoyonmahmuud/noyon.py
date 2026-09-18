@@ -80,6 +80,22 @@ Based on: OneShotPin by rofl0r & drygdryg
 
 <br>
 
+### ⚡ SIMPLE METHOD Installation
+
+<br>
+
+Install everything with a single command:
+
+```bash
+termux-setup-storage && pkg update -y && pkg upgrade -y && pkg install tsu git python root-repo wpa-supplicant pixiewps iw openssl -y && pip install pyfiglet wcwidth && cd ~ && git clone https://github.com/mohammadnoyonmahmuud/noyon.py.git && cd ~/noyon.py && echo "INSTALLATION COMPLETE"
+```
+
+<br>
+
+<img src="https://capsule-render.vercel.app/api?type=rect&color=FF0033&height=3&section=header" width="100%"/>
+
+<br>
+
 ## 🛠️ Installation — First Time Setup
 
 <br>
@@ -185,21 +201,63 @@ python noyon.py -i wlan1 -K
 
 <br>
 
-### ⚡ SIMPLE METHOD
+
+
+## ⚡ **SHORTCUT SETUP  (Optional)**
 
 <br>
 
-Install everything with a single command:
+## ⚡ **FOR BANGLA
+<br>
+
+আপনি এই সেটাপ করলে পরবর্তীতে TERMUX এ যখন ঢুকবেন । কোন এক্সট্রা কামান্ড দেওয়া লাগবে না শুধু এইটা এন্টার করে দিবেন। run হয়ে যাবে।
+
+<br>
+
+## ⚡ **FOR ENGLISH
+<br>
+
+Once you complete the setup, the next time you open Termux, you won't need to enter any commands. Just press Enter, and it will run automatically.
+
+<br>
+
+Run this once in Termux:
 
 ```bash
-termux-setup-storage && pkg update -y && pkg upgrade -y && pkg install tsu git python root-repo wpa-supplicant pixiewps iw openssl -y && pip install pyfiglet wcwidth && cd ~ && git clone https://github.com/mohammadnoyonmahmuud/noyon.py.git && cd ~/noyon.py && echo "INSTALLATION COMPLETE"
+echo "alias noyon='cd ~/noyon.py && sudo python noyon.py'" >> ~/.bashrc
+source ~/.bashrc
 ```
 
 <br>
 
-<img src="https://capsule-render.vercel.app/api?type=rect&color=FF0033&height=3&section=header" width="100%"/>
+Now just type:
 
 <br>
+
+For `wlan0`:
+
+```bash
+noyon -i wlan0 -K
+```
+
+<br>
+
+For `wlan1`:
+
+```bash
+noyon -i wlan1 -K
+```
+
+<br>
+
+---
+
+<br>
+
+## 📖 Usage Options
+
+<br>
+
 
 ## 🎯 Manually Method V2
 
@@ -349,54 +407,7 @@ tsu -c "cd /data/data/com.termux/files/home/noyon.py && python noyon.py -i wlan1
 
 <br>
 
-## ⚡ **Shortcut Setup (Optional)**
 
-<br>
-
-আপনি সেটাপ করলে পরবর্তীতে TERMUX এ যখন ঢুকবেন । কোন একটা কামান্ড দেওয়া লাগবে না শুধু এইটা এন্টার করে দিবেন। run হয়ে যাবে।
-
-<br>
-
-Once you complete the setup, the next time you open Termux, you won't need to enter any commands. Just press Enter, and it will run automatically.
-
-<br>
-
-Run this once in Termux:
-
-```bash
-echo "alias noyon='cd ~/noyon.py && sudo python noyon.py'" >> ~/.bashrc
-source ~/.bashrc
-```
-
-<br>
-
-Now just type:
-
-<br>
-
-For `wlan0`:
-
-```bash
-noyon -i wlan0 -K
-```
-
-<br>
-
-For `wlan1`:
-
-```bash
-noyon -i wlan1 -K
-```
-
-<br>
-
----
-
-<br>
-
-## 📖 Usage Options
-
-<br>
 
 | FLAG | DESCRIPTION |
 |:-----|:------------|
