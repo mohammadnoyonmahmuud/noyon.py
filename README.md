@@ -4,7 +4,7 @@
 
 <br>
 
-### WPS PIN / PIXIE DUST ATTACK TOOL FOR TERMUX
+### ⚡ WPS PIN / PIXIE DUST ATTACK TOOL FOR TERMUX ⚡
 
 <br>
 
@@ -31,7 +31,7 @@ Based on: OneShotPin by rofl0r & drygdryg
 
 <br>
 
-## Features
+## 🚀 Features
 
 <br>
 
@@ -39,16 +39,16 @@ Based on: OneShotPin by rofl0r & drygdryg
 <tr>
 <td width="50%">
 
-- WPS PIN Generation — 24/28/32-bit, D-Link, ASUS, Airocon
-- Pixie Dust Attack — Fast offline WPS PIN recovery
-- Smart Bruteforce — Sequential half-sweep algorithm
+- 🎯 WPS PIN Generation — 24/28/32-bit, D-Link, ASUS, Airocon
+- 🧚 Pixie Dust Attack — Fast offline WPS PIN recovery
+- 🔨 Smart Bruteforce — Sequential half-sweep algorithm
 
 </td>
 <td width="50%">
 
-- Built-in Scanner — Detects WPS-enabled networks
-- Auto Save — Credentials saved to TXT / CSV / JSON
-- Termux Ready — Full Android support
+- 📡 Built-in Scanner — Detects WPS-enabled networks
+- 💾 Auto Save — Credentials saved to TXT / CSV / JSON
+- 📱 Termux Ready — Full Android support
 
 </td>
 </tr>
@@ -60,19 +60,19 @@ Based on: OneShotPin by rofl0r & drygdryg
 
 <br>
 
-## Requirements
+## 📋 Requirements
 
 <br>
 
 | COMPONENT | DESCRIPTION |
 |:----------|:------------|
-| Android | Rooted device (Magisk / SuperSU) |
-| Termux | [DOWNLOAD FROM F-DROID](https://f-droid.org/repo/com.termux_1022.apk) |
-| BusyBox | [DOWNLOAD BUSYBOX APK](https://github.com/mohammadnoyonmahmuud/noyon.py/raw/main/BusyBox%20Free_64.apk) |
+| 📱 Android | Rooted device (Magisk / SuperSU) |
+| 💻 Termux | [DOWNLOAD FROM F-DROID](https://f-droid.org/repo/com.termux_1022.apk) |
+| 📦 BusyBox | [DOWNLOAD BUSYBOX APK](https://github.com/mohammadnoyonmahmuud/noyon.py/raw/main/BusyBox%20Free_64.apk) |
 
 <br>
 
-> Root access is required. Without it, WPS attack will not work.
+> ⚠️ Root access is required. Without it, WPS attack will not work.
 
 <br>
 
@@ -80,11 +80,11 @@ Based on: OneShotPin by rofl0r & drygdryg
 
 <br>
 
-## Installation — First Time Setup
+## 🛠️ Installation — First Time Setup
 
 <br>
 
-### STEP 1 — STORAGE
+### 📌 STEP 1 — STORAGE
 
 ```bash
 termux-setup-storage
@@ -94,7 +94,7 @@ termux-setup-storage
 
 <br>
 
-### STEP 2 — UPDATE
+### 📌 STEP 2 — UPDATE
 
 ```bash
 pkg update -y && pkg upgrade -y
@@ -102,7 +102,7 @@ pkg update -y && pkg upgrade -y
 
 <br>
 
-### STEP 3 — TSU
+### 📌 STEP 3 — TSU
 
 ```bash
 pkg install tsu -y
@@ -110,7 +110,7 @@ pkg install tsu -y
 
 <br>
 
-### STEP 4 — GIT & PYTHON
+### 📌 STEP 4 — GIT & PYTHON
 
 ```bash
 pkg install git python root-repo -y
@@ -118,7 +118,7 @@ pkg install git python root-repo -y
 
 <br>
 
-### STEP 5 — PACKAGES
+### 📌 STEP 5 — PACKAGES
 
 ```bash
 pkg install wpa-supplicant pixiewps iw openssl -y
@@ -126,7 +126,7 @@ pkg install wpa-supplicant pixiewps iw openssl -y
 
 <br>
 
-### STEP 6 — PIP INSTALL
+### 📌 STEP 6 — PIP INSTALL
 
 ```bash
 pip install pyfiglet wcwidth
@@ -134,7 +134,7 @@ pip install pyfiglet wcwidth
 
 <br>
 
-### STEP 7 — CLONE
+### 📌 STEP 7 — CLONE
 
 ```bash
 cd ~
@@ -143,7 +143,7 @@ git clone https://github.com/mohammadnoyonmahmuud/noyon.py.git
 
 <br>
 
-### STEP 8 — ENTER FOLDER
+### 📌 STEP 8 — ENTER FOLDER
 
 ```bash
 cd ~/noyon.py
@@ -151,7 +151,7 @@ cd ~/noyon.py
 
 <br>
 
-### STEP 9 — GAVE POWER
+### 📌 STEP 9 — GAVE POWER
 
 ```bash
 tsu
@@ -161,7 +161,7 @@ tsu
 
 <br>
 
-### STEP 10 — RUN COMMAND
+### 📌 STEP 10 — RUN COMMAND
 
 <br>
 
@@ -185,7 +185,7 @@ python noyon.py -i wlan1 -K
 
 <br>
 
-### SIMPLE MANUALLY METHOD
+### ⚡ SIMPLE METHOD
 
 <br>
 
@@ -201,7 +201,7 @@ termux-setup-storage && pkg update -y && pkg upgrade -y && pkg install tsu git p
 
 <br>
 
-## Manually Method V2
+## 🎯 Manually Method V2
 
 <br>
 
@@ -209,13 +209,13 @@ termux-setup-storage && pkg update -y && pkg upgrade -y && pkg install tsu git p
 
 <br>
 
-### STEP 1 — OPEN TERMUX
+### 📌 STEP 1 — OPEN TERMUX
 
 Just open the Termux app on your device.
 
 <br>
 
-### STEP 2 — GET ROOT
+### 📌 STEP 2 — GET ROOT
 
 ```bash
 tsu
@@ -225,7 +225,7 @@ tsu
 
 <br>
 
-### STEP 3 — GO TO FOLDER
+### 📌 STEP 3 — GO TO FOLDER
 
 ```bash
 cd /data/data/com.termux/files/home/noyon.py
@@ -233,7 +233,7 @@ cd /data/data/com.termux/files/home/noyon.py
 
 <br>
 
-### STEP 4 — CHECK INTERFACE
+### 📌 STEP 4 — CHECK INTERFACE
 
 ```bash
 iw dev
@@ -247,11 +247,11 @@ iw dev
 
 <br>
 
-## Manually Method V3
+## 🎯 Manually Method V3
 
 <br>
 
-### STEP 1 — ENTER ROOT
+### 📌 STEP 1 — ENTER ROOT
 
 ```bash
 tsu
@@ -259,7 +259,7 @@ tsu
 
 <br>
 
-### STEP 2 — ENTER FOLDER
+### 📌 STEP 2 — ENTER FOLDER
 
 ```bash
 cd /data/data/com.termux/files/home/noyon.py
@@ -267,7 +267,7 @@ cd /data/data/com.termux/files/home/noyon.py
 
 <br>
 
-### STEP 3 — ATTACK
+### 📌 STEP 3 — ATTACK
 
 <br>
 
@@ -299,7 +299,7 @@ python noyon.py -i wlan0 -b AA:BB:CC:DD:EE:FF -K
 
 <br>
 
-### QUICK RUN — 3 COMMANDS
+### ⚡ QUICK RUN — 3 COMMANDS
 
 <br>
 
@@ -325,7 +325,7 @@ python noyon.py -i wlan0 -K
 
 <br>
 
-### ALL-IN-ONE COMMAND
+### ⚡ ALL-IN-ONE COMMAND
 
 <br>
 
@@ -349,11 +349,15 @@ tsu -c "cd /data/data/com.termux/files/home/noyon.py && python noyon.py -i wlan1
 
 <br>
 
-## Shortcut Setup (Optional)
+## ⚡ Shortcut Setup (Optional)
 
 <br>
 
-Tired of typing long commands? Create a custom alias.
+আপনি সেটাপ করলে পরবর্তীতে TERMUX এ যখন ঢুকবেন । কোন একটা কামান্ড দেওয়া লাগবে না শুধু এইটা এন্টার করে দিবেন। run হয়ে যাবে।
+
+<br>
+
+Once you complete the setup, the next time you open Termux, you won't need to enter any commands. Just press Enter, and it will run automatically.
 
 <br>
 
@@ -390,7 +394,7 @@ noyon -i wlan1 -K
 
 <br>
 
-## Usage Options
+## 📖 Usage Options
 
 <br>
 
@@ -414,7 +418,7 @@ noyon -i wlan1 -K
 
 <br>
 
-## Troubleshooting
+## 🔧 Troubleshooting
 
 <br>
 
@@ -434,7 +438,7 @@ noyon -i wlan1 -K
 
 <br>
 
-## Disclaimer
+## ⚠️ Disclaimer
 
 <br>
 
@@ -450,13 +454,13 @@ noyon -i wlan1 -K
 
 <br>
 
-## Acknowledgements
+## 🏆 Acknowledgements
 
 <br>
 
-- [rofl0r](https://github.com/rofl0r) — Original OneShot
-- [drygdryg](https://github.com/drygdryg) — OneShotPin Mod
-- [Termux](https://termux.com) — Android Terminal Emulator
+- 🥇 [rofl0r](https://github.com/rofl0r) — Original OneShot
+- 🥈 [drygdryg](https://github.com/drygdryg) — OneShotPin Mod
+- 🥉 [Termux](https://termux.com) — Android Terminal Emulator
 
 <br>
 
@@ -464,7 +468,7 @@ noyon -i wlan1 -K
 
 <br>
 
-## License
+## 📜 License
 
 <br>
 
@@ -482,11 +486,11 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 
 <br>
 
-### STAR THIS REPO IF YOU FOUND IT USEFUL
+### ⭐ STAR THIS REPO IF YOU FOUND IT USEFUL ⭐
 
 <br>
 
-MADE WITH LOVE BY [MOHAMMAD NOYON](https://github.com/mohammadnoyonmahmuud)
+💖 MADE WITH LOVE BY [MOHAMMAD NOYON](https://github.com/mohammadnoyonmahmuud) 💖
 
 <br>
 
