@@ -151,6 +151,17 @@ cd ~/noyon.py
 
 <br>
 
+
+
+### **STEP 9 ** — FOR POWER 
+
+```bash
+tsu
+```
+
+<br>
+
+
 ### **🎯 FINAL STEP — EXECUTE**
 
 <br>
