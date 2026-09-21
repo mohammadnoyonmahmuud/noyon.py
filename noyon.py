@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Noyon.py — ULTRA Engine WPS Attack Suite
-# Author: Noyon | Owner: @UnknownGuy9876 | Channel: @SGCodexs
+# Author: Noyon | Owner: @mohammad_noyon | Channel: @SGCodexs
 # Architecture: External Engine Pattern | Lock Guard | MAC Rotation
 # Real Algorithms Only | Robust Error Handling
 
@@ -1618,17 +1618,8 @@ def show_banner():
             pass
     print(f'{UI.GRAY}═══════════════════════════════════════════════════════════════{UI.RESET}')
     print(f'  {UI.BOLD}{UI.WHITE}Noyon.py{UI.RESET}  ·  {UI.CYAN}ULTRA ENGINE Edition{UI.RESET}')
-    print(f'  {UI.GRAY}Author:{UI.RESET} Noyon  ·  {UI.GRAY}Owner:{UI.RESET} @UnknownGuy9876')
+    print(f'  {UI.GRAY}Author:{UI.RESET} Noyon  ·  {UI.GRAY}Owner:{UI.RESET} @mohammad_noyon')
     print(f'  {UI.GRAY}Architecture:{UI.RESET} External Engines | Lock Guard | MAC Rotation')
-    print(f'{UI.GRAY}═══════════════════════════════════════════════════════════════{UI.RESET}')
-    vendor_count = len(WPSpin.VENDOR_DATABASE)
-    oui_count = sum(len(v) for v in WPSpin.VENDOR_DATABASE.values())
-    algo_count = len(WPSpin().algos)
-    engine_count = len(EngineRegistry.ENGINES)
-    print(f'  {UI.GRAY}Vendors:{UI.RESET} {vendor_count}  '
-          f'{UI.GRAY}OUI:{UI.RESET} {oui_count}  '
-          f'{UI.GRAY}Algorithms:{UI.RESET} {algo_count}  '
-          f'{UI.GRAY}Engines:{UI.RESET} {engine_count}')
     print(f'{UI.GRAY}═══════════════════════════════════════════════════════════════{UI.RESET}')
     print()
 
