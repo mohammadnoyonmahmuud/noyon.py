@@ -1,14 +1,323 @@
+# ═══════════════════════════════════════════════════════════════════
+#  Noyon.py — Git Ignore
+#  ULTRA ENGINE Edition
+#  Author: Noyon | Owner: @UnknownGuy9876 | Channel: @SGCodexs
+# ═══════════════════════════════════════════════════════════════════
+
+
+# ── Python Artifacts ─────────────────────────────────────────────
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-reports/
-*.run
-*.bak
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+
+# ── Virtual Environments ─────────────────────────────────────────
 .venv/
 venv/
 env/
-.idea/
-.vscode/
+ENV/
+.python-version
+.env
+.env.*
+!.env.example
+
+
+# ── Noyon.py Runtime Data (CRITICAL — DO NOT COMMIT) ─────────────
+# Scan results
+reports/
+reports/*.txt
+reports/*.csv
+reports/*.json
+
+# Bruteforce sessions
+sessions/
+*.run
+*.session
+
+# Pixie Dust recovered PINs
+pixiewps/
+pixie_creds/
+*.pixie
+
+# Saved credentials
+stored.txt
+stored.csv
+stored.json
+stored.*.bak
+credentials.*
+passwords.*
+
+# WPS handshake captures
+*.cap
+*.pcap
+*.pcapng
+*.ivs
+*.hccap
+*.hccapx
+*.22000
+
+# Logs
 *.log
+logs/
+logs/*.txt
+
+
+# ── Testing ──────────────────────────────────────────────────────
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+*.cover
+.hypothesis/
+.hypothesis-*
+coverage.xml
+*.coveragerc
+
+
+# ── Type Checking & Linting ──────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.ruff_cache/
+.flake8
+.pylint.d/
+
+
+# ── Build Tools ──────────────────────────────────────────────────
+pip-log.txt
+pip-delete-this-directory.txt
+pip-wheel-metadata/
+.eggs/
+*.manifest
+*.spec
+
+
+# ── IDE / Editor ─────────────────────────────────────────────────
+# JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# VS Code
+.vscode/
+!.vscode/settings.json.example
+
+# Vim
+*.swp
+*.swo
+*~
+.*.swp
+Session.vim
+.viminfo
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Sublime
+*.sublime-project
+*.sublime-workspace
+
+# Atom
+.atom/
+
+# NetBeans
+nbproject/
+nbactions.xml
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Jupyter
+.ipynb_checkpoints
+
+
+# ── OS Files ─────────────────────────────────────────────────────
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+.directory
+.Trash-*
+.nfs*
+
+
+# ── Termux / Android ─────────────────────────────────────────────
+.termux/
+.termux-*
+termux-*
+
+
+# ── Backup Files ─────────────────────────────────────────────────
+*.bak
+*.backup
+*.orig
+*.rej
+*.tmp
+*.temp
+*.old
+*.swp
+*~
+
+# Auto-generated backups
+*.auto
+*.auto.*
+*.before-*
+
+
+# ── Security / Secrets (NEVER commit) ────────────────────────────
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+.ssh/
+.gnupg/
+.gpg/
+secrets.*
+*.secret
+credentials.*
+config.local.*
+
+
+# ── Database Files ───────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+
+# ── Archive Files (Generated) ────────────────────────────────────
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+# But keep specific distributables
+!release-*.zip
+!release-*.tar.gz
+
+
+# ── Binary Bloat (Avoid committing) ──────────────────────────────
+# Already committed: BusyBox Free_64
+# Ignore other binaries unless explicitly added
+*.exe
+*.dll
+*.dylib
+# *.so is already ignored above
+
+# Exception: BusyBox binary (explicitly tracked)
+!BusyBox*
+
+
+# ── Node.js (if any JS tools added later) ────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
+.yarn-integrity
+
+
+# ── Rust (if any Rust tools added later) ─────────────────────────
+target/
+Cargo.lock
+**/*.rs.bk
+
+
+# ── Temporary Dev Files ──────────────────────────────────────────
+todo.txt
+TODO.local
+notes.txt
+scratch/
+drafts/
+sandbox/
+playground/
+
+
+# ── OS-specific Cache ────────────────────────────────────────────
+.cache/
+.cache-*/
+*.cache
+
+
+# ── Project-specific ─────────────────────────────────────────────
+# Noyon local config
+noyon.local.conf
+noyon.conf
+noyon.local.json
+
+# Custom OUI lists (keep default vulnwsc.txt)
+custom-oui.txt
+my-vulnwsc.txt
+personal-oui.db
+
+# Debug dumps
+debug/
+debug_*.txt
+debug_*.log
+dump/
+dumps/
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  End of .gitignore
+#  If you accidentally committed something here, use:
+#     git rm --cached <file>
+#     git commit -m "Remove mistakenly tracked file"
+# ═══════════════════════════════════════════════════════════════════
