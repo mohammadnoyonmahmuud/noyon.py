@@ -1,2 +1,94 @@
-pyfiglet
-wcwidth
+# ═══════════════════════════════════════════════════════════════════
+#  Noyon.py — Python Requirements
+#  ULTRA ENGINE Edition
+#  Author: Noyon | Owner: @UnknownGuy9876 | Channel: @SGCodexs
+# ═══════════════════════════════════════════════════════════════════
+#
+#  Python version: >= 3.6.15  (uses f-strings, dataclasses, typing)
+#
+#  Install:
+#     pip install -r requirements.txt
+#
+#  For Termux users:
+#     bash installer.sh
+# ═══════════════════════════════════════════════════════════════════
+
+
+# ── Core Dependencies (REQUIRED) ─────────────────────────────────
+# These are mandatory. Tool will not run without them.
+
+pyfiglet>=0.8.post1,<1.0.0
+    # ASCII art banner rendering
+    # Used in: show_banner() → Figlet renderText()
+    # Homepage: https://github.com/pwaller/pyfiglet
+
+wcwidth>=0.2.5,<1.0.0
+    # Unicode character width calculation
+    # Used in: truncate(), _str_width()
+    # Homepage: https://github.com/jquast/wcwidth
+
+
+# ── System Dependencies (install via pkg / apt) ──────────────────
+# These are NOT Python packages — install via your OS package manager
+#
+# Termux (Android):
+#   pkg install -y wpa-supplicant pixiewps iw iproute2 openssl termux-api
+#
+# Debian/Ubuntu:
+#   apt install -y wpasupplicant pixiewps iw iproute2 openssl
+#
+# Arch:
+#   pacman -S wpa_supplicant pixiewps iw iproute2 openssl
+#
+# Details:
+#   wpa-supplicant  → WPS protocol implementation (WPS_REG, WPS_PBC)
+#   pixiewps        → Offline PIN recovery engine (Pixie Dust)
+#   iw              → Wireless interface scanner (iw dev X scan)
+#   iproute2        → MAC rotation support (ip link set)
+#   openssl         → Cryptographic operations
+#   termux-api      → Termux-specific hardware access (optional)
+
+
+# ── Optional Enhancements ────────────────────────────────────────
+# Not required, but enhance the experience. Install manually if wanted.
+#
+# colorama>=0.4.6
+#     Cross-platform ANSI color support (Windows/legacy terminals)
+#     pip install colorama
+#
+# rich>=13.0.0
+#     Rich terminal output (tables, progress bars, syntax highlight)
+#     pip install rich
+#
+# requests>=2.31.0
+#     HTTP client (for future OUI lookup features)
+#     pip install requests
+
+
+# ── Development Dependencies ─────────────────────────────────────
+# Only for testing / contributing. Not needed for normal use.
+#
+# pytest>=7.0.0
+#     Unit testing framework
+#     pip install pytest
+#
+# flake8>=6.0.0
+#     Python code linter (PEP 8)
+#     pip install flake8
+#
+# mypy>=1.0.0
+#     Static type checker
+#     pip install mypy
+#
+# black>=23.0.0
+#     Code formatter
+#     pip install black
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  Full install command (one-liner):
+#    pip install pyfiglet wcwidth
+#
+#  Verify install:
+#    python -c "import pyfiglet; import wcwidth; print('OK')"
+# ═══════════════════════════════════════════════════════════════════
