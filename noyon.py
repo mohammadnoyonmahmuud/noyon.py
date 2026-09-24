@@ -1019,7 +1019,7 @@ class Companion:
 #  WIFI SCANNER  (PREMIUM UI)
 # ═══════════════════════════════════════════════════════════════════
 class WiFiScanner:
-    LINE_WIDTH = 62
+    LINE_WIDTH = 48
 
     def __init__(self, interface, vuln_list=None, reverse_scan=False):
         self.interface = interface
@@ -1131,19 +1131,14 @@ class WiFiScanner:
         print()
         print(f'{C.B_CYAN}╔{"═" * W}╗{C.RESET}')
         title = '📶  AVAILABLE WPS NETWORKS'
-        pad = (W - _str_width(title) - 2) // 2
+        pad = (W - _str_width(title)) // 2
         print(f'{C.B_CYAN}║{C.RESET}{" " * pad}{C.B_WHITE}{C.BOLD}{title}{C.RESET}'
-              f'{" " * (W - pad - _str_width(title) - 2)}{C.B_CYAN}║{C.RESET}')
+              f'{" " * (W - pad - _str_width(title))}{C.B_CYAN}║{C.RESET}')
         print(f'{C.B_CYAN}╠{"═" * W}╣{C.RESET}')
         total = len(networks)
-        print(f'{C.B_CYAN}║{C.RESET}  {C.GRAY}Found {C.B_WHITE}{total}{C.RESET} '
-              f'{C.GRAY}WPS-enabled network(s){C.RESET}'
-              f'{" " * (W - 33)}{C.B_CYAN}║{C.RESET}')
-        if self.vuln_list:
-            print(f'{C.B_CYAN}║{C.RESET}  {C.B_GREEN}● {C.RESET}{C.GRAY}Possibly vulnerable   '
-                  f'{C.B_RED}● {C.RESET}{C.GRAY}WPS locked   '
-                  f'{C.B_YELLOW}● {C.RESET}{C.GRAY}Already stored{C.RESET}'
-                  f'{" " * (W - 55)}{C.B_CYAN}║{C.RESET}')
+        found_line = f'  Found {total} WPS-enabled network(s)'
+        print(f'{C.B_CYAN}║{C.RESET}{C.GRAY}{found_line}{C.RESET}'
+              f'{" " * (W - _str_width(found_line))}{C.B_CYAN}║{C.RESET}')
         print(f'{C.B_CYAN}╚{"═" * W}╝{C.RESET}')
 
         items = list(network_list.items())
@@ -1172,14 +1167,18 @@ class WiFiScanner:
                 accent = C.B_CYAN
                 tag = ''
 
-            # Red big number
+            # ── Space before card ──
             print()
+            print()
+
+            # ── BIG RED NUMBER ──
             print(f'  {C.B_RED}▌{C.RESET} {C.B_RED}{C.BOLD}{n}{C.RESET}'
                   + (f'   {tag}' if tag else ''))
-            # Double separator (top)
+
+            # ── Top separator ──
             print(f'  {accent}{"━" * W}{C.RESET}')
 
-            # Info rows
+            # ── Info rows ──
             label_w = 10
             def row(label, value, color=C.WHITE):
                 label_str = f'{label:<{label_w}}'
@@ -1195,7 +1194,7 @@ class WiFiScanner:
                 dev = f'{network["Device name"]} {model}'.strip()
                 row('Device', dev, C.GRAY)
 
-            # Double separator (bottom)
+            # ── Bottom separator ──
             print(f'  {accent}{"━" * W}{C.RESET}')
 
         print()
@@ -1244,9 +1243,9 @@ def die(msg):
 
 
 def show_banner():
-    """Premium banner — big red NOYON.py inside box."""
+    """Compact premium banner — red NOYON.py."""
     print()
-    W = 58  # inner width
+    W = 44  # inner width — short & clean
 
     # ── Top border ──
     print(f'{C.GOLD}╔{"═" * W}╗{C.RESET}')
@@ -1263,7 +1262,7 @@ def show_banner():
           f'{" " * (W - pad - tw)}{C.GOLD}║{C.RESET}')
 
     # ── Cyan subtitle ──
-    subtitle = '⚡  WPS PIN / Pixie Dust Attack Tool  ⚡'
+    subtitle = 'WPS PIN / Pixie Dust Attack Tool'
     sw = _str_width(subtitle)
     pad2 = (W - sw) // 2
     print(f'{C.GOLD}║{C.RESET}{" " * pad2}'
@@ -1280,10 +1279,10 @@ def show_banner():
     info_rows = [
         ('Author     ', 'NOYON BHAI',                C.B_GREEN),
         ('Based on   ', 'NOYON BHAI (OneShotPin)',   C.WHITE),
-        ('Version    ', 'Premium Edition',           C.B_YELLOW),
+        ('Version    ', 'MAX PRO ULTRA',             C.B_YELLOW),
     ]
     for label, value, valcolor in info_rows:
-        visible = 2 + 11 + 2 + _str_width(value)   # "  " + label(11) + ": " + value
+        visible = 2 + 11 + 2 + _str_width(value)
         pad_end = W - visible
         print(f'{C.GOLD}║{C.RESET}  {C.GRAY}{label}{C.RESET}: '
               f'{valcolor}{value}{C.RESET}'
