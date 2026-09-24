@@ -1254,7 +1254,7 @@ def show_banner():
     print(f'{C.GOLD}║{C.RESET}{" " * W}{C.GOLD}║{C.RESET}')
 
     # ── Big red NOYON.py ──
-    title = '◆  N O Y O N . p y  ◆'
+    title = '◆  N O Y O N  ◆'
     tw = _str_width(title)
     pad = (W - tw) // 2
     print(f'{C.GOLD}║{C.RESET}{" " * pad}'
