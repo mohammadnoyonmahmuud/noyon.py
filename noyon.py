@@ -1335,7 +1335,7 @@ class WiFiScanner:
         W = self.LINE_WIDTH
         print()
         print(f'{C.B_CYAN}╔{"═" * W}╗{C.RESET}')
-        title = '📶  WIFI NETWORKS — REAL-TIME WPS STATUS'
+        title = '  WIFI NETWORKS — REAL-TIME WPS STATUS'
         pad = (W - _str_width(title)) // 2
         print(f'{C.B_CYAN}║{C.RESET}{" " * pad}{C.B_WHITE}{C.BOLD}{title}{C.RESET}'
               f'{" " * (W - pad - _str_width(title))}{C.B_CYAN}║{C.RESET}')
@@ -1464,7 +1464,7 @@ def show_banner():
     W = 44
     print(f'{C.GOLD}╔{"═" * W}╗{C.RESET}')
     print(f'{C.GOLD}║{C.RESET}{" " * W}{C.GOLD}║{C.RESET}')
-    title = '◆  N O Y O N . p y  ◆'
+    title = '◆  N O Y O N  ◆'
     tw = _str_width(title)
     pad = (W - tw) // 2
     print(f'{C.GOLD}║{C.RESET}{" " * pad}'
