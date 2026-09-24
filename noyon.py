@@ -173,9 +173,26 @@ def truncate(s, length, postfix='…'):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  DEPENDENCY CHECK
+#  DEPENDENCY CHECK — SILENT BACKGROUND MODE
 # ═══════════════════════════════════════════════════════════════════
+# Global silent registry — populated by check_dependencies()
+_OPTIONAL_TOOLS = {
+    'hcxdumptool':   False,
+    'hcxpcapngtool': False,
+    'macchanger':    False,
+    'hashcat':       False,
+}
+
+
 def check_dependencies():
+    """Verify required tools.
+
+    Required tools → missing হলে die() হবে (error দেখাবে)।
+    Optional tools → silent background check, কোনো display output নেই।
+                     থাকলে কাজ করবে, না থাকলে চুপচাপ skip।
+    """
+    global _OPTIONAL_TOOLS
+
     required = {
         'wpa_supplicant': 'wpasupplicant',
         'pixiewps':       'pixiewps',
@@ -183,10 +200,10 @@ def check_dependencies():
         'ip':             'iproute2',
     }
     optional = {
-        'hcxdumptool':  'PMKID attack',
+        'hcxdumptool':   'PMKID attack',
         'hcxpcapngtool': 'PMKID hash conversion',
-        'macchanger':   'MAC spoofing',
-        'hashcat':      'Password cracking',
+        'macchanger':    'MAC spoofing',
+        'hashcat':       'Password cracking',
     }
 
     missing = []
@@ -199,9 +216,10 @@ def check_dependencies():
             '\nInstall: apt install ' + ' '.join(
                 p.split('(')[1].strip(')') for p in missing))
 
-    for cmd, desc in optional.items():
-        if not shutil.which(cmd):
-            print(f'{C.DIM}[i] Optional: {cmd} not found ({desc}){C.RESET}')
+    # ── Optional tools: SILENT background check ──
+    # কোনো print() নেই। Result গুলো global dict-এ save হয়।
+    for cmd in optional:
+        _OPTIONAL_TOOLS[cmd] = shutil.which(cmd) is not None
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -834,9 +852,10 @@ class Companion:
         return False
 
     def pmkid_attack(self, bssid, timeout=60):
-        if not shutil.which('hcxdumptool'):
-            print(f'{C.B_YELLOW}[!]{C.RESET} hcxdumptool not installed. '
-                  f'Install: apt install hcxdumptool hcxtools')
+        # Silent background check — no startup warning
+        if not _OPTIONAL_TOOLS.get('hcxdumptool', False):
+            print(f'{C.B_YELLOW}[!]{C.RESET} hcxdumptool not available '
+                  f'— PMKID attack skipped')
             return None
 
         print(f'{C.B_CYAN}[*]{C.RESET} Starting PMKID capture on {bssid}…')
@@ -855,14 +874,15 @@ class Companion:
             return None
 
         hash_file = pcap.replace('.pcapng', '.16800')
-        if shutil.which('hcxpcapngtool'):
+        if _OPTIONAL_TOOLS.get('hcxpcapngtool', False):
             subprocess.run(f'hcxpcapngtool -o {hash_file} {pcap}',
                            shell=True, stdout=subprocess.DEVNULL)
             if os.path.exists(hash_file) and os.path.getsize(hash_file) > 0:
                 print(f'{C.B_GREEN}[+]{C.RESET} PMKID captured! '
                       f'Saved to {C.GOLD}{hash_file}{C.RESET}')
-                print(f'{C.B_CYAN}[i]{C.RESET} Crack with: '
-                      f'hashcat -m 16800 {hash_file} wordlist.txt')
+                if _OPTIONAL_TOOLS.get('hashcat', False):
+                    print(f'{C.B_CYAN}[i]{C.RESET} Crack with: '
+                          f'hashcat -m 16800 {hash_file} wordlist.txt')
                 return hash_file
 
         print(f'{C.B_YELLOW}[!]{C.RESET} PMKID may not be present '
@@ -1246,7 +1266,6 @@ class WiFiScanner:
             networks[-1]['WPS'] = result.group(1)
 
         def handle_wpsState(line, result, networks):
-            """Wi-Fi Protected Setup State: 1 = Unconfigured, 2 = Configured"""
             try:
                 networks[-1]['WPS state'] = int(result.group(1))
             except ValueError:
@@ -1300,11 +1319,9 @@ class WiFiScanner:
                 if res:
                     handler(line, res, networks)
 
-        # ── NO hard filter — show ALL networks ──
         if not networks:
             return False
 
-        # Sort: WPS ON first (by state desc, then signal), then WPS OFF
         def sort_key(n):
             wps_on = 1 if n['WPS'] else 0
             return (wps_on, n['Level'])
@@ -1312,7 +1329,6 @@ class WiFiScanner:
         networks.sort(key=sort_key, reverse=True)
         network_list = {(i + 1): n for i, n in enumerate(networks)}
 
-        # ── Summary ──
         wps_on_count = sum(1 for n in networks if n['WPS'])
         wps_off_count = len(networks) - wps_on_count
 
@@ -1340,13 +1356,11 @@ class WiFiScanner:
                                    network['Model number']).strip()
             essid = network.get('ESSID', 'HIDDEN')
 
-            # ── ACCURATE WPS STATUS DETECTION ──
-            wps_enabled = bool(network['WPS'])          # WPS IE present
-            wps_state = network.get('WPS state', 0)     # 1=unconfig, 2=config
+            wps_enabled = bool(network['WPS'])
+            wps_state = network.get('WPS state', 0)
             wps_locked = network['WPS locked']
 
             if not wps_enabled:
-                # WPS IE absent → WPS is OFF
                 accent = C.DARKGRAY
                 tag = f'{C.DARKGRAY}◯ WPS OFF{C.RESET}'
             elif wps_locked:
@@ -1378,7 +1392,6 @@ class WiFiScanner:
             row('ESSID', essid, C.B_WHITE if wps_enabled else C.GRAY)
             row('Security', network['Security type'], C.GOLD)
 
-            # ── WPS status row (accurate) ──
             wps_label = f'{"WPS":<{label_w}}'
             if not wps_enabled:
                 wps_display = f'{C.DARKGRAY}OFF  (WPS IE absent){C.RESET}'
@@ -1417,10 +1430,10 @@ class WiFiScanner:
         while True:
             try:
                 networkNo = input(
-                    f'\n{C.B_CYAN}┌─[{C.RESET}{C.B_WHITE}Select Target{C.RESET}'
-                    f'{C.B_CYAN}]{C.RESET}\n'
-                    f'{C.B_CYAN}└─▶{C.RESET} '
-                    f'{C.GRAY}(Enter to refresh){C.RESET}: '
+                    f'\n{C.GOLD}┌─[{C.RESET}{C.GOLD}{C.BOLD}Select Target{C.RESET}'
+                    f'{C.GOLD}]{C.RESET}\n'
+                    f'{C.GOLD}└─▶{C.RESET} '
+                    f'{C.DARKGRAY}(Enter to refresh){C.RESET}: '
                 )
                 if networkNo.lower() in ('r', '0', ''):
                     return self.prompt_network()
