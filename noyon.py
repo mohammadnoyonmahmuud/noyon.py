@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Noyon.py — WPS PIN / Pixie Dust Attack Tool
-# Author: Noyon
+# Author: NOYON BHAI
 # Based on OneShotPin (c) 2017 rofl0r, modded by drygdryg
 # Merged, audited & production-hardened fork
 import sys
@@ -21,16 +21,6 @@ import csv
 import json
 from pathlib import Path
 from typing import Dict
-
-try:
-    import wcwidth
-except ImportError:
-    wcwidth = None
-
-try:
-    from pyfiglet import Figlet
-except ImportError:
-    Figlet = None
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -155,10 +145,12 @@ class NetworkAddress:
 #  STRING HELPERS
 # ═══════════════════════════════════════════════════════════════════
 def _str_width(s):
-    if wcwidth is not None:
+    try:
+        import wcwidth
         w = wcwidth.wcswidth(s)
         return w if w >= 0 else len(s)
-    return len(s)
+    except Exception:
+        return len(s)
 
 
 def truncate(s, length, postfix='…'):
@@ -1252,32 +1244,52 @@ def die(msg):
 
 
 def show_banner():
+    """Premium banner — big red NOYON.py inside box."""
     print()
-    # ASCII banner
-    if Figlet:
-        try:
-            banner = Figlet(font='slant').renderText('NOYON')
-            print(f'{C.B_CYAN}{banner}{C.RESET}')
-        except Exception:
-            pass
-    else:
-        print(f'{C.B_CYAN}{C.BOLD}  N O Y O N{C.RESET}')
+    W = 58  # inner width
 
-    W = 58
+    # ── Top border ──
     print(f'{C.GOLD}╔{"═" * W}╗{C.RESET}')
-    print(f'{C.GOLD}║{C.RESET}  {C.B_WHITE}{C.BOLD}NOYON.py{C.RESET} '
-          f'{C.DIM}— WPS PIN / Pixie Dust Attack Tool{C.RESET}'
-          f'{" " * 8}{C.GOLD}║{C.RESET}')
+
+    # ── Empty line ──
+    print(f'{C.GOLD}║{C.RESET}{" " * W}{C.GOLD}║{C.RESET}')
+
+    # ── Big red NOYON.py ──
+    title = '◆  N O Y O N . p y  ◆'
+    tw = _str_width(title)
+    pad = (W - tw) // 2
+    print(f'{C.GOLD}║{C.RESET}{" " * pad}'
+          f'{C.B_RED}{C.BOLD}{title}{C.RESET}'
+          f'{" " * (W - pad - tw)}{C.GOLD}║{C.RESET}')
+
+    # ── Cyan subtitle ──
+    subtitle = '⚡  WPS PIN / Pixie Dust Attack Tool  ⚡'
+    sw = _str_width(subtitle)
+    pad2 = (W - sw) // 2
+    print(f'{C.GOLD}║{C.RESET}{" " * pad2}'
+          f'{C.B_CYAN}{subtitle}{C.RESET}'
+          f'{" " * (W - pad2 - sw)}{C.GOLD}║{C.RESET}')
+
+    # ── Empty line ──
+    print(f'{C.GOLD}║{C.RESET}{" " * W}{C.GOLD}║{C.RESET}')
+
+    # ── Divider ──
     print(f'{C.GOLD}╟{"─" * W}╢{C.RESET}')
-    print(f'{C.GOLD}║{C.RESET}  {C.GRAY}Author     {C.RESET}: '
-          f'{C.B_GREEN}Noyon{C.RESET}'
-          f'{" " * (W - 17)}{C.GOLD}║{C.RESET}')
-    print(f'{C.GOLD}║{C.RESET}  {C.GRAY}Based on   {C.RESET}: '
-          f'{C.WHITE}rofl0r & drygdryg (OneShotPin){C.RESET}'
-          f'{" " * (W - 36)}{C.GOLD}║{C.RESET}')
-    print(f'{C.GOLD}║{C.RESET}  {C.GRAY}Version    {C.RESET}: '
-          f'{C.B_YELLOW}Premium Edition{C.RESET}'
-          f'{" " * (W - 25)}{C.GOLD}║{C.RESET}')
+
+    # ── Info rows ──
+    info_rows = [
+        ('Author     ', 'NOYON BHAI',                C.B_GREEN),
+        ('Based on   ', 'NOYON BHAI (OneShotPin)',   C.WHITE),
+        ('Version    ', 'Premium Edition',           C.B_YELLOW),
+    ]
+    for label, value, valcolor in info_rows:
+        visible = 2 + 11 + 2 + _str_width(value)   # "  " + label(11) + ": " + value
+        pad_end = W - visible
+        print(f'{C.GOLD}║{C.RESET}  {C.GRAY}{label}{C.RESET}: '
+              f'{valcolor}{value}{C.RESET}'
+              f'{" " * pad_end}{C.GOLD}║{C.RESET}')
+
+    # ── Bottom border ──
     print(f'{C.GOLD}╚{"═" * W}╝{C.RESET}')
     print()
 
@@ -1288,7 +1300,7 @@ def show_banner():
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(
-        description='Noyon.py — WPS attack tool by Noyon',
+        description='Noyon.py — WPS attack tool by NOYON BHAI',
         epilog='Example: %(prog)s -i wlan0 -b 00:90:4C:C1:AC:21 -K')
     parser.add_argument('-i', '--interface', type=str, required=True,
                         help='Name of the interface to use')
