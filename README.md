@@ -102,9 +102,9 @@ termux-setup-storage && pkg update -y && pkg upgrade -y && pkg install tsu git p
 
 ##### 🔹 STEP 1 — STORAGE
 
-```bash
+`````bash
 termux-setup-storage
-```
+`````
 
 > Tap ALLOW when the popup appears.
 
@@ -120,9 +120,9 @@ pkg update -y && pkg upgrade -y
 
 ##### 🔹 STEP 3 — TSU
 
-```bash
+`````bash
 pkg install tsu -y
-```
+`````
 
 <br>
 
