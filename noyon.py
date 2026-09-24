@@ -173,10 +173,9 @@ def truncate(s, length, postfix='…'):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  DEPENDENCY CHECK (NEW)
+#  DEPENDENCY CHECK
 # ═══════════════════════════════════════════════════════════════════
 def check_dependencies():
-    """Verify required tools before running"""
     required = {
         'wpa_supplicant': 'wpasupplicant',
         'pixiewps':       'pixiewps',
@@ -247,12 +246,7 @@ class WPSpin:
             'pinH108L':    {'name': 'H108L',            'mode': self.ALGO_STATIC, 'gen': lambda mac: 9422988},
             'pinONO':      {'name': 'CBN ONO',          'mode': self.ALGO_STATIC, 'gen': lambda mac: 9575521},
 
-            # ═══════════════════════════════════════════════════════════
-            #  NEW: CVE-VERIFIED STATIC PINs (only 2 documented publicly)
-            # ═══════════════════════════════════════════════════════════
-            # Source: CVE-2012-4366 (2Wire routers security advisory)
             'pin2Wire':    {'name': '2Wire (CVE-2012-4366)', 'mode': self.ALGO_STATIC, 'gen': lambda mac: 1223330},
-            # Source: Arris cable modem public advisory
             'pinArris':    {'name': 'Arris (Advisory)', 'mode': self.ALGO_STATIC, 'gen': lambda mac: 8822885},
         }
 
@@ -355,23 +349,10 @@ class WPSpin:
                 '9C9D7E', 'ACF832', 'B83A3A', 'C42335', 'C46AB7', 'D8322E',
                 'E03676', 'E47185', 'F0B429', '14CF92', '288088', '58D56E',
                 '8C68C8', '94A7B7', '44946F', '1013EE', '1C3BF3', '503FA4',
-
-                # ═══════════════════════════════════════════════════════
-                #  NEW: IEEE-VERIFIED OUI (2020-2023 registration)
-                #  Source: https://standards-oui.ieee.org/
-                # ═══════════════════════════════════════════════════════
-
-                # TP-Link (2020-2023 registered)
                 'AC84C6', 'C46E1F', 'D847A7', 'E894F6', 'F4F26D',
                 '2CA542', 'AC15A2', '10DA43', '687251', '983BDD',
-
-                # Xiaomi (2020-2023 registered)
                 '34CE00', '50EC50', 'F8A45F', 'A4DA22', 'D4970B',
-
-                # Huawei (2020-2023 registered)
                 '002598', '283152', '781DBA', 'E0247F', '3CDFBD',
-
-                # Netgear (2020-2023 registered)
                 'E091F5', '9C3DCF', '44944A',
             ),
             'pin28': (
@@ -631,13 +612,8 @@ class Companion:
             os.makedirs(d, exist_ok=True)
 
         self.generator = WPSpin()
-
-        # ── Start watchdog ──
         self._start_watchdog()
 
-    # ═══════════════════════════════════════════════════════════════
-    #  PATCH 1: Retry-based wpa_supplicant startup
-    # ═══════════════════════════════════════════════════════════════
     def __init_wpa_supplicant(self, max_retries=3):
         for attempt in range(1, max_retries + 1):
             try:
@@ -676,9 +652,6 @@ class Companion:
                 print(f'{C.B_YELLOW}[!]{C.RESET} Retrying in 2s…')
                 time.sleep(2)
 
-    # ═══════════════════════════════════════════════════════════════
-    #  PATCH 2: Watchdog thread
-    # ═══════════════════════════════════════════════════════════════
     def _start_watchdog(self):
         self._watchdog_stop = threading.Event()
 
@@ -703,9 +676,6 @@ class Companion:
     def sendOnly(self, command):
         self.retsock.sendto(command.encode(), self.wpas_ctrl_path)
 
-    # ═══════════════════════════════════════════════════════════════
-    #  PATCH 3: sendAndReceive with timeout
-    # ═══════════════════════════════════════════════════════════════
     def sendAndReceive(self, command, timeout=30):
         try:
             self.retsock.settimeout(timeout)
@@ -863,11 +833,7 @@ class Companion:
                     return "''" if pin == '<empty>' else pin
         return False
 
-    # ═══════════════════════════════════════════════════════════════
-    #  NEW FEATURE: PMKID Attack (verified — hashcat 2018)
-    # ═══════════════════════════════════════════════════════════════
     def pmkid_attack(self, bssid, timeout=60):
-        """PMKID capture — works even if WPS is locked"""
         if not shutil.which('hcxdumptool'):
             print(f'{C.B_YELLOW}[!]{C.RESET} hcxdumptool not installed. '
                   f'Install: apt install hcxdumptool hcxtools')
@@ -1029,7 +995,6 @@ class Companion:
 
         self.sendOnly('WPS_CANCEL')
 
-        # ── PATCH 4: WPS Lock Detection ──
         if self.connection_status.status == 'WPS_FAIL':
             self._fail_count += 1
             if self._fail_count >= 5:
@@ -1181,25 +1146,19 @@ class Companion:
             if self.loop_mode:
                 raise
 
-    # ═══════════════════════════════════════════════════════════════
-    #  PATCH 4 (part 2): Robust cleanup + watchdog stop
-    # ═══════════════════════════════════════════════════════════════
     def cleanup(self):
-        # Stop watchdog
         try:
             if self._watchdog_stop is not None:
                 self._watchdog_stop.set()
         except Exception:
             pass
 
-        # Close socket
         try:
             if hasattr(self, 'retsock') and self.retsock:
                 self.retsock.close()
         except Exception:
             pass
 
-        # Terminate wpa_supplicant
         try:
             if hasattr(self, 'wpas') and self.wpas:
                 self.wpas.terminate()
@@ -1210,7 +1169,6 @@ class Companion:
         except Exception:
             pass
 
-        # Remove files
         for p in (getattr(self, 'res_socket_file', None),
                   getattr(self, 'tempconf', None)):
             if p:
@@ -1219,7 +1177,6 @@ class Companion:
                 except Exception:
                     pass
 
-        # Remove tempdir
         try:
             if hasattr(self, 'tempdir'):
                 shutil.rmtree(self.tempdir, ignore_errors=True)
@@ -1234,7 +1191,7 @@ class Companion:
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  WIFI SCANNER
+#  WIFI SCANNER — REAL-TIME WPS ON/OFF DETECTION
 # ═══════════════════════════════════════════════════════════════════
 class WiFiScanner:
     LINE_WIDTH = 48
@@ -1258,8 +1215,8 @@ class WiFiScanner:
     def iw_scanner(self) -> Dict[int, dict]:
         def handle_network(line, result, networks):
             networks.append({'Security type': 'Unknown', 'WPS': False,
-                             'WPS locked': False, 'Model': '',
-                             'Model number': '', 'Device name': '',
+                             'WPS locked': False, 'WPS state': 0,
+                             'Model': '', 'Model number': '', 'Device name': '',
                              'BSSID': result.group(1).upper()})
 
         def handle_essid(line, result, networks):
@@ -1287,6 +1244,13 @@ class WiFiScanner:
 
         def handle_wps(line, result, networks):
             networks[-1]['WPS'] = result.group(1)
+
+        def handle_wpsState(line, result, networks):
+            """Wi-Fi Protected Setup State: 1 = Unconfigured, 2 = Configured"""
+            try:
+                networks[-1]['WPS state'] = int(result.group(1))
+            except ValueError:
+                networks[-1]['WPS state'] = 0
 
         def handle_wpsLocked(line, result, networks):
             if int(result.group(1), 16):
@@ -1319,6 +1283,7 @@ class WiFiScanner:
             re.compile(r'(RSN):\t [*] Version: (\d+)'): handle_securityType,
             re.compile(r'(WPA):\t [*] Version: (\d+)'): handle_securityType,
             re.compile(r'WPS:\t [*] Version: (([0-9]*[.])?[0-9]+)'): handle_wps,
+            re.compile(r' [*] Wi-Fi Protected Setup State: (\d+)'): handle_wpsState,
             re.compile(r' [*] AP setup locked: (0x[0-9]+)'): handle_wpsLocked,
             re.compile(r' [*] Model: (.*)'): handle_model,
             re.compile(r' [*] Model Number: (.*)'): handle_modelNumber,
@@ -1335,25 +1300,35 @@ class WiFiScanner:
                 if res:
                     handler(line, res, networks)
 
-        networks = [n for n in networks if n['WPS']]
+        # ── NO hard filter — show ALL networks ──
         if not networks:
             return False
 
-        networks.sort(key=lambda x: x['Level'], reverse=True)
+        # Sort: WPS ON first (by state desc, then signal), then WPS OFF
+        def sort_key(n):
+            wps_on = 1 if n['WPS'] else 0
+            return (wps_on, n['Level'])
+
+        networks.sort(key=sort_key, reverse=True)
         network_list = {(i + 1): n for i, n in enumerate(networks)}
+
+        # ── Summary ──
+        wps_on_count = sum(1 for n in networks if n['WPS'])
+        wps_off_count = len(networks) - wps_on_count
 
         W = self.LINE_WIDTH
         print()
         print(f'{C.B_CYAN}╔{"═" * W}╗{C.RESET}')
-        title = '📶  AVAILABLE WPS NETWORKS'
+        title = '📶  WIFI NETWORKS — REAL-TIME WPS STATUS'
         pad = (W - _str_width(title)) // 2
         print(f'{C.B_CYAN}║{C.RESET}{" " * pad}{C.B_WHITE}{C.BOLD}{title}{C.RESET}'
               f'{" " * (W - pad - _str_width(title))}{C.B_CYAN}║{C.RESET}')
         print(f'{C.B_CYAN}╠{"═" * W}╣{C.RESET}')
-        total = len(networks)
-        found_line = f'  Found {total} WPS-enabled network(s)'
-        print(f'{C.B_CYAN}║{C.RESET}{C.GRAY}{found_line}{C.RESET}'
-              f'{" " * (W - _str_width(found_line))}{C.B_CYAN}║{C.RESET}')
+        summary = (f'  WPS ON: {wps_on_count}  |  '
+                   f'WPS OFF: {wps_off_count}  |  '
+                   f'Total: {len(networks)}')
+        print(f'{C.B_CYAN}║{C.RESET}{C.GRAY}{summary}{C.RESET}'
+              f'{" " * (W - _str_width(summary))}{C.B_CYAN}║{C.RESET}')
         print(f'{C.B_CYAN}╚{"═" * W}╝{C.RESET}')
 
         items = list(network_list.items())
@@ -1365,18 +1340,27 @@ class WiFiScanner:
                                    network['Model number']).strip()
             essid = network.get('ESSID', 'HIDDEN')
 
-            if (network['BSSID'], essid) in self.stored:
-                accent = C.B_YELLOW
-                tag = f'{C.B_YELLOW}★ STORED{C.RESET}'
-            elif network['WPS locked']:
+            # ── ACCURATE WPS STATUS DETECTION ──
+            wps_enabled = bool(network['WPS'])          # WPS IE present
+            wps_state = network.get('WPS state', 0)     # 1=unconfig, 2=config
+            wps_locked = network['WPS locked']
+
+            if not wps_enabled:
+                # WPS IE absent → WPS is OFF
+                accent = C.DARKGRAY
+                tag = f'{C.DARKGRAY}◯ WPS OFF{C.RESET}'
+            elif wps_locked:
                 accent = C.B_RED
-                tag = f'{C.B_RED}🔒 LOCKED{C.RESET}'
-            elif self.vuln_list and (model in self.vuln_list):
+                tag = f'{C.B_RED}◉ WPS ON  🔒 LOCKED{C.RESET}'
+            elif wps_state == 2:
                 accent = C.B_GREEN
-                tag = f'{C.B_GREEN}⚡ VULNERABLE{C.RESET}'
+                tag = f'{C.B_GREEN}◉ WPS ON{C.RESET}'
+            elif wps_state == 1:
+                accent = C.B_YELLOW
+                tag = f'{C.B_YELLOW}◉ WPS ON (unconfigured){C.RESET}'
             else:
-                accent = C.B_CYAN
-                tag = ''
+                accent = C.B_GREEN
+                tag = f'{C.B_GREEN}◉ WPS ON{C.RESET}'
 
             print()
             print()
@@ -1391,8 +1375,24 @@ class WiFiScanner:
                       f'{C.BOLD}{label_str}{C.RESET}: {color}{value}{C.RESET}')
 
             row('BSSID', network['BSSID'], C.B_CYAN)
-            row('ESSID', essid, C.B_WHITE)
+            row('ESSID', essid, C.B_WHITE if wps_enabled else C.GRAY)
             row('Security', network['Security type'], C.GOLD)
+
+            # ── WPS status row (accurate) ──
+            wps_label = f'{"WPS":<{label_w}}'
+            if not wps_enabled:
+                wps_display = f'{C.DARKGRAY}OFF  (WPS IE absent){C.RESET}'
+            elif wps_locked:
+                wps_display = f'{C.B_RED}ON  🔒 LOCKED{C.RESET}'
+            elif wps_state == 2:
+                wps_display = f'{C.B_GREEN}ON  (Configured){C.RESET}'
+            elif wps_state == 1:
+                wps_display = f'{C.B_YELLOW}ON  (Unconfigured){C.RESET}'
+            else:
+                wps_display = f'{C.B_GREEN}ON{C.RESET}'
+            print(f'  {C.DARKGRAY}│{C.RESET}  '
+                  f'{C.BOLD}{wps_label}{C.RESET}: {wps_display}')
+
             row('Signal', f'{network["Level"]} dBm', C.B_GREEN
                 if network['Level'] > -60 else C.B_YELLOW)
             if network['Device name'] or model:
@@ -1412,7 +1412,7 @@ class WiFiScanner:
     def prompt_network(self) -> str:
         networks = self.iw_scanner()
         if not networks:
-            print(f'{C.B_RED}[-]{C.RESET} No WPS networks found.')
+            print(f'{C.B_RED}[-]{C.RESET} No networks found.')
             return ''
         while True:
             try:
@@ -1531,7 +1531,6 @@ if __name__ == '__main__':
     if os.getuid() != 0:
         die('Run it as root')
 
-    # ── Dependency check ──
     if not args.no_dep_check:
         check_dependencies()
 
