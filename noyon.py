@@ -1322,27 +1322,30 @@ class WiFiScanner:
         if not networks:
             return False
 
-        def sort_key(n):
-            wps_on = 1 if n['WPS'] else 0
-            return (wps_on, n['Level'])
+        # ═══════════════════════════════════════════════════════════
+        #  FILTER: শুধু WPS ON নেটওয়ার্কগুলো দেখাবে
+        #  WPS OFF / WPS IE absent সব বাদ যাবে
+        # ═══════════════════════════════════════════════════════════
+        networks = [n for n in networks if n['WPS']]
+        if not networks:
+            print(f'{C.B_YELLOW}[!]{C.RESET} No WPS-enabled networks found.')
+            return False
 
-        networks.sort(key=sort_key, reverse=True)
+        # সব WPS ON, তাই signal অনুযায়ী sort
+        networks.sort(key=lambda n: n['Level'], reverse=True)
         network_list = {(i + 1): n for i, n in enumerate(networks)}
 
-        wps_on_count = sum(1 for n in networks if n['WPS'])
-        wps_off_count = len(networks) - wps_on_count
+        wps_on_count = len(networks)
 
         W = self.LINE_WIDTH
         print()
         print(f'{C.B_CYAN}╔{"═" * W}╗{C.RESET}')
-        title = '  WIFI NETWORKS — REAL-TIME WPS STATUS'
+        title = '  WIFI NETWORKS — WPS ON ONLY'
         pad = (W - _str_width(title)) // 2
         print(f'{C.B_CYAN}║{C.RESET}{" " * pad}{C.B_WHITE}{C.BOLD}{title}{C.RESET}'
               f'{" " * (W - pad - _str_width(title))}{C.B_CYAN}║{C.RESET}')
         print(f'{C.B_CYAN}╠{"═" * W}╣{C.RESET}')
-        summary = (f'  WPS ON: {wps_on_count}  |  '
-                   f'WPS OFF: {wps_off_count}  |  '
-                   f'Total: {len(networks)}')
+        summary = f'  WPS ON: {wps_on_count}  |  Total: {wps_on_count}'
         print(f'{C.B_CYAN}║{C.RESET}{C.GRAY}{summary}{C.RESET}'
               f'{" " * (W - _str_width(summary))}{C.B_CYAN}║{C.RESET}')
         print(f'{C.B_CYAN}╚{"═" * W}╝{C.RESET}')
@@ -1356,14 +1359,10 @@ class WiFiScanner:
                                    network['Model number']).strip()
             essid = network.get('ESSID', 'HIDDEN')
 
-            wps_enabled = bool(network['WPS'])
             wps_state = network.get('WPS state', 0)
             wps_locked = network['WPS locked']
 
-            if not wps_enabled:
-                accent = C.DARKGRAY
-                tag = f'{C.DARKGRAY}◯ WPS OFF{C.RESET}'
-            elif wps_locked:
+            if wps_locked:
                 accent = C.B_RED
                 tag = f'{C.B_RED}◉ WPS ON  🔒 LOCKED{C.RESET}'
             elif wps_state == 2:
@@ -1389,13 +1388,11 @@ class WiFiScanner:
                       f'{C.BOLD}{label_str}{C.RESET}: {color}{value}{C.RESET}')
 
             row('BSSID', network['BSSID'], C.B_CYAN)
-            row('ESSID', essid, C.B_WHITE if wps_enabled else C.GRAY)
+            row('ESSID', essid, C.B_WHITE)
             row('Security', network['Security type'], C.GOLD)
 
             wps_label = f'{"WPS":<{label_w}}'
-            if not wps_enabled:
-                wps_display = f'{C.DARKGRAY}OFF  (WPS IE absent){C.RESET}'
-            elif wps_locked:
+            if wps_locked:
                 wps_display = f'{C.B_RED}ON  🔒 LOCKED{C.RESET}'
             elif wps_state == 2:
                 wps_display = f'{C.B_GREEN}ON  (Configured){C.RESET}'
